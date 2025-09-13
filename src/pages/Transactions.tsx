@@ -7,7 +7,7 @@ import DataTable from "@/components/ui/data-table";
 import ExportButtons from "@/components/ui/export-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Paperclip } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -21,10 +21,11 @@ interface Transaction {
   date: string;
   amount: string;
   customer: string;
+  attachment_url?: string;
 }
 
 const Transactions = () => {
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -36,6 +37,8 @@ const Transactions = () => {
     amount: "",
     customer: "",
   });
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
@@ -52,7 +55,6 @@ const Transactions = () => {
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
-      .eq('user_id', user.id)
       .order('timestamp', { ascending: false });
 
     if (error) {
@@ -65,6 +67,14 @@ const Transactions = () => {
         date: t.timestamp ? new Date(t.timestamp).toISOString().split('T')[0] : '',
         amount: t.extracted_details?.amount || '',
         customer: t.extracted_details?.customer || '',
+        attachment: t.attachment_url ? (
+          <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
+            <Paperclip className="h-4 w-4 mr-1" />
+            View
+          </a>
+        ) : 'None',
+        // Keep original attachment_url for editing
+        attachment_url: t.attachment_url,
       }));
       setTransactions(formattedData);
     }
@@ -88,6 +98,7 @@ const Transactions = () => {
         customer: newTransaction.customer || "",
       });
       setRawContent(newTransaction.content || '');
+      setAttachmentFile(null);
       setIsDialogOpen(true);
 
       navigate(location.pathname, { replace: true, state: {} });
@@ -100,9 +111,10 @@ const Transactions = () => {
     { key: "date", label: "Date" },
     { key: "amount", label: "Amount" },
     { key: "customer", label: "Customer" },
+    { key: "attachment", label: "Attachment" },
   ];
 
-  const handleEdit = (transaction: Transaction) => {
+  const handleEdit = (transaction: any) => {
     setEditingTransaction(transaction);
     setFormData({
       document: transaction.document,
@@ -111,6 +123,7 @@ const Transactions = () => {
       amount: transaction.amount,
       customer: transaction.customer,
     });
+    setAttachmentFile(null);
     setIsDialogOpen(true);
   };
 
@@ -128,10 +141,36 @@ const Transactions = () => {
   };
 
   const handleSave = async () => {
+    setIsSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       showError("You must be logged in to save transactions.");
+      setIsSaving(false);
       return;
+    }
+
+    let attachmentUrl = editingTransaction?.attachment_url || null;
+
+    if (attachmentFile) {
+      const fileExt = attachmentFile.name.split('.').pop();
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = `${user.id}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('transaction_attachments')
+        .upload(filePath, attachmentFile);
+
+      if (uploadError) {
+        showError(`Failed to upload attachment: ${uploadError.message}`);
+        setIsSaving(false);
+        return;
+      }
+
+      const { data: urlData } = supabase.storage
+        .from('transaction_attachments')
+        .getPublicUrl(filePath);
+      
+      attachmentUrl = urlData.publicUrl;
     }
 
     const transactionData = {
@@ -144,7 +183,8 @@ const Transactions = () => {
         amount: formData.amount,
         customer: formData.customer,
         date: formData.date,
-      }
+      },
+      attachment_url: attachmentUrl,
     };
 
     let error;
@@ -165,11 +205,20 @@ const Transactions = () => {
       setEditingTransaction(null);
       fetchTransactions();
     }
+    setIsSaving(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachmentFile(e.target.files[0]);
+    } else {
+      setAttachmentFile(null);
+    }
   };
 
   if (loading) {
@@ -198,6 +247,7 @@ const Transactions = () => {
                   setEditingTransaction(null);
                   setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "" });
                   setRawContent('');
+                  setAttachmentFile(null);
                 }}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Transaction
@@ -234,10 +284,17 @@ const Transactions = () => {
                     <Label htmlFor="customer" className="text-right">Customer</Label>
                     <Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" />
                   </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="attachment" className="text-right">Attachment</Label>
+                    <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" />
+                  </div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave}>{editingTransaction ? "Update" : "Add"} Transaction</Button>
+                  <Button onClick={handleSave} disabled={isSaving}>
+                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {editingTransaction ? "Update" : "Add"} Transaction
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
