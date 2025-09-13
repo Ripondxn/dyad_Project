@@ -187,15 +187,21 @@ const Transactions = () => {
       attachment_url: attachmentUrl,
     };
 
-    let error;
+    let query;
     if (editingTransaction) {
-      ({ error } = await supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id));
+      query = supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id);
     } else {
-      ({ error } = await supabase.from('transactions').insert(transactionData));
+      query = supabase.from('transactions').insert(transactionData);
     }
 
+    const { error } = await query;
+
     if (error) {
-      showError(error.message);
+      if (error.code === '23505') { // PostgreSQL unique violation error code
+        showError("A transaction with this Document # already exists.");
+      } else {
+        showError(error.message);
+      }
     } else {
       toast({
         title: `Transaction ${editingTransaction ? 'updated' : 'added'}`,
