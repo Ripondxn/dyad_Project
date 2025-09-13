@@ -1,8 +1,7 @@
-"use client";
-
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { FileDown } from "lucide-react";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface ExportButtonsProps {
   data: any[];
@@ -10,39 +9,28 @@ interface ExportButtonsProps {
 }
 
 const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename }) => {
-  const downloadCSV = () => {
-    if (!data || data.length === 0) {
+  const { toast } = useToast();
+
+  const handleExportCSV = () => {
+    if (data.length === 0) {
+      toast({
+        title: "No data to export",
+        variant: "destructive",
+      });
       return;
     }
-
-    const headers = Object.keys(data[0]).filter(key => typeof data[0][key] !== 'object' || data[0][key] === null);
-
+    
+    const headers = Object.keys(data[0]);
     const csvContent = [
       headers.join(','),
-      ...data.map(row =>
-        headers
-          .map(header => {
-            let cell = row[header];
-            if (cell === null || cell === undefined) {
-              return '';
-            }
-            
-            let cellString = String(cell);
-            if (/[",\n]/.test(cellString)) {
-              cellString = `"${cellString.replace(/"/g, '""')}"`;
-            }
-            return cellString;
-          })
-          .join(',')
-      ),
+      ...data.map(row => headers.map(header => JSON.stringify(row[header])).join(','))
     ].join('\n');
-
+    
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
+    link.href = url;
     link.setAttribute('download', `${filename}.csv`);
-    link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -50,8 +38,8 @@ const ExportButtons: React.FC<ExportButtonsProps> = ({ data, filename }) => {
   };
 
   return (
-    <Button variant="outline" onClick={downloadCSV}>
-      <FileDown className="h-4 w-4 mr-2" />
+    <Button variant="outline" onClick={handleExportCSV}>
+      <Download className="h-4 w-4 mr-2" />
       Export CSV
     </Button>
   );

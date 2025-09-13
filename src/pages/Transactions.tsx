@@ -149,35 +149,6 @@ const Transactions = () => {
       return;
     }
 
-    // --- DUPLICATE CHECK ---
-    if (formData.document) {
-      const query = supabase
-        .from('transactions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('extracted_details->>document', formData.document)
-        .limit(1);
-
-      if (editingTransaction) {
-        query.neq('id', editingTransaction.id);
-      }
-
-      const { data: existing, error: checkError } = await query;
-
-      if (checkError) {
-        showError(`Error checking for duplicates: ${checkError.message}`);
-        setIsSaving(false);
-        return;
-      }
-
-      if (existing && existing.length > 0) {
-        showError(`A transaction with document #${formData.document} already exists.`);
-        setIsSaving(false);
-        return;
-      }
-    }
-    // --- END DUPLICATE CHECK ---
-
     let attachmentUrl = editingTransaction?.attachment_url || null;
 
     if (attachmentFile) {

@@ -1,6 +1,4 @@
-"use client";
-
-import React from "react";
+import React from 'react';
 import {
   Table,
   TableBody,
@@ -8,86 +6,52 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Edit, Trash2 } from 'lucide-react';
 
-interface DataTableProps<T> {
-  columns: {
-    key: keyof T | string;
-    label: string;
-  }[];
-  data: T[];
-  onEdit: (item: T) => void;
+interface DataTableProps {
+  data: any[];
+  columns: { key: string; label: string }[];
+  onEdit: (item: any) => void;
   onDelete: (id: string) => void;
 }
 
-export function DataTable<T extends { id: string }>({
-  columns,
-  data,
-  onEdit,
-  onDelete,
-}: DataTableProps<T>) {
+const DataTable: React.FC<DataTableProps> = ({ data, columns, onEdit, onDelete }) => {
   return (
-    <div className="rounded-md border bg-card">
+    <div className="border rounded-lg">
       <Table>
         <TableHeader>
           <TableRow>
-            {columns.map((column) => (
-              <TableHead key={String(column.key)}>{column.label}</TableHead>
+            {columns.map((col) => (
+              <TableHead key={col.key}>{col.label}</TableHead>
             ))}
-            <TableHead>
-              <span className="sr-only">Actions</span>
-            </TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {data?.length ? (
-            data.map((row) => (
-              <TableRow key={row.id}>
-                {columns.map((column) => {
-                  const value = String(column.key).split('.').reduce((o: any, i) => o?.[i], row);
-                  return (
-                    <TableCell key={String(column.key)}>
-                      {value as React.ReactNode}
-                    </TableCell>
-                  );
-                })}
+          {data.length > 0 ? (
+            data.map((item) => (
+              <TableRow key={item.id}>
+                {columns.map((col) => (
+                  <TableCell key={col.key}>{item[col.key]}</TableCell>
+                ))}
                 <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onSelect={() => onEdit(row)}>
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onSelect={() => onDelete(row.id)}>
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="ghost" size="icon" onClick={() => onEdit(item)}>
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete(item.id)}>
+                      <Trash2 className="h-4 w-4 text-red-500" />
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length + 1}
-                className="h-24 text-center"
-              >
-                No results.
+              <TableCell colSpan={columns.length + 1} className="text-center">
+                No transactions found.
               </TableCell>
             </TableRow>
           )}
@@ -95,6 +59,6 @@ export function DataTable<T extends { id: string }>({
       </Table>
     </div>
   );
-}
+};
 
 export default DataTable;
