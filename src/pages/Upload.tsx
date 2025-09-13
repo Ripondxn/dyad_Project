@@ -19,12 +19,15 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import ExtractionResult from "@/components/ExtractionResult";
+import { supabase } from "@/integrations/supabase/client";
+import { showError } from "@/utils/toast";
 
 const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [text, setText] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractionResult, setExtractionResult] = useState<string | null>(null);
+  const [parsedTransactionData, setParsedTransactionData] = useState<any | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -36,7 +39,7 @@ const Upload = () => {
     });
   };
 
-  const handleProcess = () => {
+  const handleProcess = async () => {
     if (files.length === 0 && !text.trim()) {
       toast({
         title: "No data provided",
@@ -49,33 +52,68 @@ const Upload = () => {
     setIsProcessing(true);
     toast({
       title: "Processing started",
-      description: "Your data is being processed. This may take a few moments.",
+      description: "Your data is being processed by our AI. This may take a few moments.",
     });
 
-    // Simulate AI processing delay
-    setTimeout(() => {
-      const mockResult = `
+    try {
+      let functionArgs: { text?: string; fileData?: string; fileType?: string } = {};
+
+      if (text.trim()) {
+        functionArgs.text = text;
+      } else if (files.length > 0) {
+        const file = files[0];
+        const reader = new FileReader();
+        const filePromise = new Promise<{ fileData: string; fileType: string }>((resolve, reject) => {
+          reader.onload = (event) => {
+            const base64String = (event.target?.result as string).split(',')[1];
+            resolve({ fileData: base64String, fileType: file.type });
+          };
+          reader.onerror = (error) => reject(error);
+          reader.readAsDataURL(file);
+        });
+        const { fileData, fileType } = await filePromise;
+        functionArgs = { fileData, fileType };
+      }
+
+      const { data, error } = await supabase.functions.invoke('process-transaction', {
+        body: functionArgs,
+      });
+
+      if (error) {
+        throw error;
+      }
+      
+      const { extractedData } = data;
+      
+      const formattedResult = `
 Transaction Details:
 --------------------
-Merchant: The Corner Cafe
-Date: 2023-10-28
-Time: 09:15 AM
-Total Amount: $18.75
-Payment Method: MasterCard **** 5678
-
-Items:
-- 2x Cappuccino: $9.00
-- 1x Almond Croissant: $5.50
-- 1x Blueberry Muffin: $4.25
+Document #: ${extractedData.document || 'N/A'}
+Type: ${extractedData.type || 'N/A'}
+Merchant: ${extractedData.customer || 'N/A'}
+Date: ${extractedData.date || 'N/A'}
+Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
       `.trim();
 
-      setExtractionResult(mockResult);
-      setIsProcessing(false);
+      setExtractionResult(formattedResult);
+      setParsedTransactionData(extractedData);
+
       toast({
         title: "Processing complete",
         description: "Data extraction finished successfully!",
       });
-    }, 3000);
+
+    } catch (error: any) {
+      console.error("Processing error:", error);
+      showError(error.message || "An unknown error occurred during processing.");
+      toast({
+        title: "Processing failed",
+        description: "There was an error extracting data. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const removeFile = (index: number) => {
@@ -83,33 +121,12 @@ Items:
   };
 
   const handleSaveTransaction = () => {
-    if (!extractionResult) return;
+    if (!parsedTransactionData) return;
 
-    // Simple parser for the mock data
-    const parseResult = (text: string) => {
-      const lines = text.split('\n');
-      const transaction: any = {
-        document: `REC-${Date.now().toString().slice(-6)}`,
-        type: 'Receipt',
-        status: 'Processed',
-        date: '',
-        amount: '',
-        customer: '',
-      };
-      lines.forEach(line => {
-        if (line.startsWith('Merchant:')) {
-          transaction.customer = line.split('Merchant:')[1].trim();
-        } else if (line.startsWith('Date:')) {
-          transaction.date = line.split('Date:')[1].trim();
-        } else if (line.startsWith('Total Amount:')) {
-          transaction.amount = line.split('Total Amount:')[1].trim();
-        }
-      });
-      return transaction;
+    const newTransactionData = {
+      ...parsedTransactionData,
+      content: extractionResult,
     };
-
-    const newTransactionData = parseResult(extractionResult);
-    newTransactionData.content = extractionResult; // Add raw content
 
     toast({
       title: "Redirecting to Transactions",
@@ -121,6 +138,7 @@ Items:
 
   const handleClearResult = () => {
     setExtractionResult(null);
+    setParsedTransactionData(null);
     setFiles([]);
     setText("");
   };
