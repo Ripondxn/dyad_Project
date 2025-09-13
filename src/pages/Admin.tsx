@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface Profile {
   id: string;
@@ -21,6 +22,7 @@ interface Profile {
   first_name: string | null;
   last_name: string | null;
   role: string;
+  status: string;
 }
 
 const Admin = () => {
@@ -29,14 +31,12 @@ const Admin = () => {
   const [editingProfile, setEditingProfile] = useState<Profile | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
-    // This RPC call is needed to get user emails from the auth.users table,
-    // as it's not directly queryable by clients.
-    // We assume an admin has permission to run this.
     const { data, error } = await supabase.rpc('get_all_users_with_profiles');
 
     if (error) {
@@ -54,7 +54,24 @@ const Admin = () => {
   const handleEdit = (profile: Profile) => {
     setEditingProfile(profile);
     setSelectedRole(profile.role);
+    setSelectedStatus(profile.status);
     setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (profileId: string) => {
+    if (!window.confirm('Are you sure you want to permanently delete this user? This action cannot be undone.')) {
+      return;
+    }
+    try {
+      const { error } = await supabase.functions.invoke('delete-user', {
+        body: { userIdToDelete: profileId },
+      });
+      if (error) throw error;
+      toast({ title: 'User deleted successfully!' });
+      fetchProfiles();
+    } catch (error: any) {
+      toast({ title: 'Error deleting user', description: error.message, variant: 'destructive' });
+    }
   };
 
   const handleSaveChanges = async () => {
@@ -62,16 +79,16 @@ const Admin = () => {
     setIsSaving(true);
     const { error } = await supabase
       .from('profiles')
-      .update({ role: selectedRole })
+      .update({ role: selectedRole, status: selectedStatus })
       .eq('id', editingProfile.id);
 
     if (error) {
-      toast({ title: 'Error updating role', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error updating user', description: error.message, variant: 'destructive' });
     } else {
-      toast({ title: 'User role updated successfully!' });
+      toast({ title: 'User updated successfully!' });
       setIsDialogOpen(false);
       setEditingProfile(null);
-      fetchProfiles(); // Refresh data
+      fetchProfiles();
     }
     setIsSaving(false);
   };
@@ -81,7 +98,13 @@ const Admin = () => {
     { key: 'first_name', label: 'First Name' },
     { key: 'last_name', label: 'Last Name' },
     { key: 'role', label: 'Role' },
+    { key: 'status', label: 'Status' },
   ];
+
+  const formattedData = profiles.map(p => ({
+    ...p,
+    status: <Badge variant={p.status === 'active' ? 'default' : 'destructive'}>{p.status}</Badge>
+  }));
 
   if (loading) {
     return (
@@ -101,16 +124,17 @@ const Admin = () => {
           <p className="text-gray-500">Manage users and their roles.</p>
         </div>
         <DataTable
-          data={profiles}
+          data={formattedData}
           columns={columns}
-          onEdit={handleEdit}
+          onEdit={(row) => handleEdit(profiles.find(p => p.id === row.id)!)}
+          onDelete={handleDelete}
         />
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit User Role</DialogTitle>
+            <DialogTitle>Edit User</DialogTitle>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <p>
@@ -125,6 +149,18 @@ const Admin = () => {
                 <SelectContent>
                   <SelectItem value="user">User</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
                 </SelectContent>
               </Select>
             </div>

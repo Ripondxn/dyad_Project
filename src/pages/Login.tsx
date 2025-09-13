@@ -90,16 +90,40 @@ const Login = () => {
 
   const onSignIn = async (data: SignInFormValues) => {
     setIsSubmitting(true);
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
 
     if (error) {
       showError(error.message);
-    } else {
-      navigate('/');
+      setIsSubmitting(false);
+      return;
     }
+
+    if (signInData.user) {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('status')
+        .eq('id', signInData.user.id)
+        .single();
+
+      if (profileError || !profile) {
+        await supabase.auth.signOut();
+        showError('Could not verify your account status. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (profile.status === 'inactive') {
+        await supabase.auth.signOut();
+        showError('Your account is inactive. Please contact an administrator.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    navigate('/');
     setIsSubmitting(false);
   };
 
