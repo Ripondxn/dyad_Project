@@ -1,7 +1,11 @@
+// @ts-ignore
 /// <reference types="https://raw.githubusercontent.com/denoland/deno/main/cli/tsc/d.ts/lib.deno.d.ts" />
 
+// @ts-ignore
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+// @ts-ignore
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+// @ts-ignore
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@0.15.0";
 
 const corsHeaders = {
@@ -9,6 +13,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// @ts-ignore
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 if (!GEMINI_API_KEY) {
   console.error("GEMINI_API_KEY is not set in Supabase secrets.");
@@ -23,7 +28,9 @@ serve(async (req) => {
 
   try {
     const supabaseClient = createClient(
+      // @ts-ignore
       Deno.env.get('SUPABASE_URL') ?? '',
+      // @ts-ignore
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     )
@@ -63,8 +70,9 @@ serve(async (req) => {
       - Total amount (as a number, without currency symbols)
       - Document number (if available)
       - Document type (e.g., Invoice, Receipt, Bill)
+      - Items description (a concise summary of the items or services, if available in the document body)
 
-      Format the output as a JSON object with the keys: "customer", "date", "amount", "document", "type".
+      Format the output as a JSON object with the keys: "customer", "date", "amount", "document", "type", "items_description".
       If a value is not found, use an empty string "" or null.
       The final output must be only the JSON object, with no other text or markdown formatting.
     `;

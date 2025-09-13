@@ -11,9 +11,10 @@ import { Plus, Loader2, Paperclip, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea"; // Import Textarea
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
-import { useReactToPrint, UseReactToPrintOptions } from 'react-to-print'; // Import UseReactToPrintOptions
+import { useReactToPrint, UseReactToPrintOptions } from 'react-to-print';
 import PrintableTransactions from '@/components/PrintableTransactions';
 
 interface Transaction {
@@ -23,6 +24,7 @@ interface Transaction {
   date: string;
   amount: string;
   customer: string;
+  items_description?: string; // Add new field
   attachment_url?: string;
 }
 
@@ -38,6 +40,7 @@ const Transactions = () => {
     date: "",
     amount: "",
     customer: "",
+    items_description: "", // Initialize new field
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -71,7 +74,7 @@ const Transactions = () => {
         background-color: #f8f8f8; /* Tailwind bg-gray-50 */
       }
     `,
-  } as UseReactToPrintOptions); // Explicitly cast to UseReactToPrintOptions
+  } as UseReactToPrintOptions);
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -97,6 +100,7 @@ const Transactions = () => {
         date: t.timestamp ? new Date(t.timestamp).toISOString().split('T')[0] : '',
         amount: t.extracted_details?.amount || '',
         customer: t.extracted_details?.customer || '',
+        items_description: t.items_description || '', // Fetch new field
         attachment: t.attachment_url ? (
           <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
             <Paperclip className="h-4 w-4 mr-1" />
@@ -125,6 +129,7 @@ const Transactions = () => {
         date: newTransaction.date || "",
         amount: newTransaction.amount || "",
         customer: newTransaction.customer || "",
+        items_description: newTransaction.items_description || "", // Set new field
       });
       setRawContent(newTransaction.content || '');
       setAttachmentFile(null);
@@ -140,6 +145,7 @@ const Transactions = () => {
     { key: "date", label: "Date" },
     { key: "amount", label: "Amount" },
     { key: "customer", label: "Customer" },
+    { key: "items_description", label: "Items Description" }, // Add new column
     { key: "attachment", label: "Attachment" },
   ];
 
@@ -151,6 +157,7 @@ const Transactions = () => {
       date: transaction.date,
       amount: transaction.amount,
       customer: transaction.customer,
+      items_description: transaction.items_description || "", // Set new field for editing
     });
     setRawContent(transaction.content || '');
     setAttachmentFile(null);
@@ -214,6 +221,7 @@ const Transactions = () => {
         customer: formData.customer,
         date: formData.date,
       },
+      items_description: formData.items_description, // Include new field
       attachment_url: attachmentUrl,
     };
 
@@ -238,7 +246,7 @@ const Transactions = () => {
     setIsSaving(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // Add HTMLTextAreaElement
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
@@ -279,7 +287,7 @@ const Transactions = () => {
               <DialogTrigger asChild>
                 <Button onClick={() => {
                   setEditingTransaction(null);
-                  setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "" });
+                  setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" }); // Reset new field
                   setRawContent('');
                   setAttachmentFile(null);
                 }}>
@@ -317,6 +325,10 @@ const Transactions = () => {
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="customer" className="text-right">Customer</Label>
                     <Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-4"> {/* Use items-start for textarea */}
+                    <Label htmlFor="items_description" className="text-right pt-2">Items Description</Label>
+                    <Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" />
                   </div>
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="attachment" className="text-right">Attachment</Label>
