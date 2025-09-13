@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/ui/dashboard-layout";
 import DataTable from "@/components/ui/data-table";
 import ExportButtons from "@/components/ui/export-buttons";
@@ -69,6 +70,29 @@ const Transactions = () => {
     status: "Processed",
   });
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state && location.state.newTransaction) {
+      const { newTransaction } = location.state;
+      
+      // Open the dialog with the new transaction data
+      setEditingTransaction(null); // Ensure we are in "add" mode
+      setFormData({
+        document: newTransaction.document || "",
+        type: newTransaction.type || "Receipt",
+        date: newTransaction.date || "",
+        amount: newTransaction.amount || "",
+        customer: newTransaction.customer || "",
+        status: newTransaction.status || "Processed",
+      });
+      setIsDialogOpen(true);
+
+      // Clear the state from location to prevent re-adding on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const columns = [
     { key: "document", label: "Document #" },

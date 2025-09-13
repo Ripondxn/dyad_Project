@@ -83,13 +83,39 @@ Items:
   };
 
   const handleSaveTransaction = () => {
+    if (!extractionResult) return;
+
+    // Simple parser for the mock data
+    const parseResult = (text: string) => {
+      const lines = text.split('\n');
+      const transaction: any = {
+        document: `REC-${Date.now().toString().slice(-6)}`,
+        type: 'Receipt',
+        status: 'Processed',
+        date: '',
+        amount: '',
+        customer: '',
+      };
+      lines.forEach(line => {
+        if (line.startsWith('Merchant:')) {
+          transaction.customer = line.split('Merchant:')[1].trim();
+        } else if (line.startsWith('Date:')) {
+          transaction.date = line.split('Date:')[1].trim();
+        } else if (line.startsWith('Total Amount:')) {
+          transaction.amount = line.split('Total Amount:')[1].trim();
+        }
+      });
+      return transaction;
+    };
+
+    const newTransactionData = parseResult(extractionResult);
+
     toast({
       title: "Redirecting to Transactions",
-      description: "You can now add the new transaction.",
+      description: "Ready to add the new transaction.",
     });
-    // In a real app, you might pass the extracted data via state
-    // navigate("/transactions", { state: { extractedData: extractionResult } });
-    navigate("/transactions");
+    
+    navigate("/transactions", { state: { newTransaction: newTransactionData } });
   };
 
   const handleClearResult = () => {
