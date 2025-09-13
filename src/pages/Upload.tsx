@@ -232,7 +232,7 @@ Items:
                 <CardTitle className="flex items-center gap-2">
                   <Mic className="h-5 w-5" />
                   Audio Input
-                </Title>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
