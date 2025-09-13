@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/ui/dashboard-layout";
 import DataTable from "@/components/ui/data-table";
 import ExportButtons from "@/components/ui/export-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Paperclip } from "lucide-react";
+import { Plus, Loader2, Paperclip, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
+import { useReactToPrint } from 'react-to-print';
+import PrintableTransactions from '@/components/PrintableTransactions';
 
 interface Transaction {
   id: string;
@@ -42,6 +44,34 @@ const Transactions = () => {
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: "Transactions Report",
+    pageStyle: `
+      @page {
+        size: A4;
+        margin: 1cm;
+      }
+      body {
+        -webkit-print-color-adjust: exact;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid #e2e8f0; /* Tailwind border-gray-200 */
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f8f8f8; /* Tailwind bg-gray-50 */
+      }
+    `,
+  });
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -73,7 +103,6 @@ const Transactions = () => {
             View
           </a>
         ) : 'None',
-        // Keep original attachment_url for editing
         attachment_url: t.attachment_url,
       }));
       setTransactions(formattedData);
@@ -123,6 +152,7 @@ const Transactions = () => {
       amount: transaction.amount,
       customer: transaction.customer,
     });
+    setRawContent(transaction.content || '');
     setAttachmentFile(null);
     setIsDialogOpen(true);
   };
@@ -241,6 +271,10 @@ const Transactions = () => {
           </div>
           <div className="mt-4 sm:mt-0 flex gap-2">
             <ExportButtons data={transactions} filename="transactions" />
+            <Button onClick={handlePrint} variant="outline">
+              <Printer className="h-4 w-4 mr-2" />
+              Print PDF
+            </Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => {
@@ -307,6 +341,7 @@ const Transactions = () => {
           onDelete={handleDelete}
         />
       </div>
+      <PrintableTransactions ref={printRef} transactions={transactions} columns={columns} />
     </DashboardLayout>
   );
 };
