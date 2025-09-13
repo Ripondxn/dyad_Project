@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
-import { useReactToPrint } from 'react-to-print';
+import { useReactToPrint, UseReactToPrintOptions } from 'react-to-print'; // Import UseReactToPrintOptions
 import PrintableTransactions from '@/components/PrintableTransactions';
 
 interface Transaction {
@@ -71,7 +71,7 @@ const Transactions = () => {
         background-color: #f8f8f8; /* Tailwind bg-gray-50 */
       }
     `,
-  });
+  } as UseReactToPrintOptions); // Explicitly cast to UseReactToPrintOptions
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
