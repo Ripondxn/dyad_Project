@@ -8,7 +8,10 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Transactions from "./pages/Transactions";
 import Upload from "./pages/Upload";
+import Profile from "./pages/Profile";
+import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +35,14 @@ const App = () => (
           <Route 
             path="/upload" 
             element={<ProtectedRoute><Upload /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/profile" 
+            element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+          />
+          <Route 
+            path="/admin" 
+            element={<AdminRoute><Admin /></AdminRoute>} 
           />
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
