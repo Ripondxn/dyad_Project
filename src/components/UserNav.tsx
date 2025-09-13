@@ -31,10 +31,15 @@ export function UserNav() {
     const firstName = profile?.first_name || '';
     const lastName = profile?.last_name || '';
     if (firstName && lastName) {
-      return `${firstName[0]}${lastName[0]}`;
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    }
+    if (firstName) {
+      return firstName[0].toUpperCase();
     }
     return user.email ? user.email[0].toUpperCase() : 'U';
   };
+
+  const displayName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || user.email?.split('@')[0] || 'User';
 
   return (
     <DropdownMenu>
@@ -50,7 +55,7 @@ export function UserNav() {
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {profile?.first_name || 'User'}
+              {displayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {user.email}
