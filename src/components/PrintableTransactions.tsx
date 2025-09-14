@@ -12,7 +12,11 @@ const PrintableTransactions = React.forwardRef<HTMLDivElement, PrintableTransact
     const printableColumns = columns.filter(col => col.key !== 'attachment');
 
     return (
-      <div ref={ref} className="p-6 hidden print:block"> {/* Hidden by default, visible on print */}
+      <div 
+        ref={ref} 
+        // This component is positioned off-screen and becomes visible only for printing.
+        className="absolute -left-[9999px] p-6 print:static print:left-auto"
+      >
         <h1 className="text-2xl font-bold mb-4 text-gray-900">Transaction Report</h1>
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -52,5 +56,7 @@ const PrintableTransactions = React.forwardRef<HTMLDivElement, PrintableTransact
     );
   }
 );
+
+PrintableTransactions.displayName = 'PrintableTransactions';
 
 export default PrintableTransactions;
