@@ -226,7 +226,7 @@ const Transactions = () => {
               </div>
               <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
                 <ExportButtons data={filteredTransactions} filename="transactions" />
-                <Button onClick={() => handlePrint(null, () => printRef.current)} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
+                <Button onClick={() => handlePrint(undefined, () => printRef.current)} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
