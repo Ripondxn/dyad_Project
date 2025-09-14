@@ -95,6 +95,25 @@ const Transactions = () => {
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
+  useEffect(() => {
+    const newTransaction = location.state?.newTransaction;
+    if (newTransaction) {
+      setFormData({
+        document: newTransaction.document || "",
+        type: newTransaction.type || "Invoice",
+        date: newTransaction.date || new Date().toISOString().split('T')[0],
+        amount: newTransaction.amount || "",
+        customer: newTransaction.customer || "",
+        items_description: newTransaction.items_description || "",
+      });
+      setRawContent(newTransaction.content || '');
+      setEditingTransaction(null);
+      setAttachmentFile(null);
+      setIsDialogOpen(true);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       const customerMatch = filters.customer ? t.customer.toLowerCase().includes(filters.customer.toLowerCase()) : true;
