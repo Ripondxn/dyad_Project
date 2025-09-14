@@ -1,21 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/ui/dashboard-layout";
 import DataTable from "@/components/ui/data-table";
 import ExportButtons from "@/components/ui/export-buttons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Loader2, Paperclip, Printer } from "lucide-react";
+import { Plus, Loader2, Paperclip, Printer, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea"; // Import Textarea
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
 import { useReactToPrint, UseReactToPrintOptions } from 'react-to-print';
 import PrintableTransactions from '@/components/PrintableTransactions';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 interface Transaction {
   id: string;
@@ -24,7 +27,7 @@ interface Transaction {
   date: string;
   amount: string;
   customer: string;
-  items_description?: string; // Add new field
+  items_description?: string;
   attachment_url?: string;
 }
 
@@ -35,45 +38,25 @@ const Transactions = () => {
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [rawContent, setRawContent] = useState('');
   const [formData, setFormData] = useState({
-    document: "",
-    type: "Invoice",
-    date: "",
-    amount: "",
-    customer: "",
-    items_description: "", // Initialize new field
+    document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "",
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
   const location = useLocation();
   const navigate = useNavigate();
-
   const printRef = useRef<HTMLDivElement>(null);
+
+  const [filters, setFilters] = useState<{
+    customer: string;
+    type: string;
+    startDate: Date | undefined;
+    endDate: Date | undefined;
+  }>({ customer: '', type: '', startDate: undefined, endDate: undefined });
 
   const handlePrint = useReactToPrint({
     content: () => printRef.current,
     documentTitle: "Transactions Report",
-    pageStyle: `
-      @page {
-        size: A4;
-        margin: 1cm;
-      }
-      body {
-        -webkit-print-color-adjust: exact;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-      }
-      th, td {
-        border: 1px solid #e2e8f0; /* Tailwind border-gray-200 */
-        padding: 8px;
-        text-align: left;
-      }
-      th {
-        background-color: #f8f8f8; /* Tailwind bg-gray-50 */
-      }
-    `,
   } as UseReactToPrintOptions);
 
   const fetchTransactions = useCallback(async () => {
@@ -85,10 +68,7 @@ const Transactions = () => {
       return;
     }
 
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .order('timestamp', { ascending: false });
+    const { data, error } = await supabase.from('transactions').select('*').order('timestamp', { ascending: false });
 
     if (error) {
       showError(error.message);
@@ -100,11 +80,10 @@ const Transactions = () => {
         date: t.timestamp ? new Date(t.timestamp).toISOString().split('T')[0] : '',
         amount: t.extracted_details?.amount || '',
         customer: t.extracted_details?.customer || '',
-        items_description: t.items_description || '', // Fetch new field
+        items_description: t.items_description || '',
         attachment: t.attachment_url ? (
           <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
-            <Paperclip className="h-4 w-4 mr-1" />
-            View
+            <Paperclip className="h-4 w-4 mr-1" /> View
           </a>
         ) : 'None',
         attachment_url: t.attachment_url,
@@ -114,50 +93,30 @@ const Transactions = () => {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
-    fetchTransactions();
-  }, [fetchTransactions]);
+  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
-  useEffect(() => {
-    if (location.state && location.state.newTransaction) {
-      const { newTransaction } = location.state;
-      
-      setEditingTransaction(null);
-      setFormData({
-        document: newTransaction.document || "",
-        type: newTransaction.type || "Receipt",
-        date: newTransaction.date || "",
-        amount: newTransaction.amount || "",
-        customer: newTransaction.customer || "",
-        items_description: newTransaction.items_description || "", // Set new field
-      });
-      setRawContent(newTransaction.content || '');
-      setAttachmentFile(null);
-      setIsDialogOpen(true);
-
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location, navigate]);
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter(t => {
+      const customerMatch = filters.customer ? t.customer.toLowerCase().includes(filters.customer.toLowerCase()) : true;
+      const typeMatch = filters.type ? t.type === filters.type : true;
+      const transactionDate = new Date(t.date);
+      const startDateMatch = filters.startDate ? transactionDate >= filters.startDate : true;
+      const endDateMatch = filters.endDate ? transactionDate <= filters.endDate : true;
+      return customerMatch && typeMatch && startDateMatch && endDateMatch;
+    });
+  }, [transactions, filters]);
 
   const columns = [
-    { key: "document", label: "Document #" },
-    { key: "type", label: "Type" },
-    { key: "date", label: "Date" },
-    { key: "amount", label: "Amount" },
-    { key: "customer", label: "Customer" },
-    { key: "items_description", label: "Items Description" }, // Add new column
+    { key: "document", label: "Document #" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
+    { key: "amount", label: "Amount" }, { key: "customer", label: "Customer" }, { key: "items_description", label: "Items Description" },
     { key: "attachment", label: "Attachment" },
   ];
 
   const handleEdit = (transaction: any) => {
     setEditingTransaction(transaction);
     setFormData({
-      document: transaction.document,
-      type: transaction.type,
-      date: transaction.date,
-      amount: transaction.amount,
-      customer: transaction.customer,
-      items_description: transaction.items_description || "", // Set new field for editing
+      document: transaction.document, type: transaction.type, date: transaction.date,
+      amount: transaction.amount, customer: transaction.customer, items_description: transaction.items_description || "",
     });
     setRawContent(transaction.content || '');
     setAttachmentFile(null);
@@ -166,13 +125,8 @@ const Transactions = () => {
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) {
-      showError(error.message);
-    } else {
-      toast({
-        title: "Transaction deleted",
-        description: "The transaction has been removed successfully.",
-      });
+    if (error) { showError(error.message); } else {
+      toast({ title: "Transaction deleted", description: "The transaction has been removed successfully." });
       fetchTransactions();
     }
   };
@@ -187,58 +141,29 @@ const Transactions = () => {
     }
 
     let attachmentUrl = editingTransaction?.attachment_url || null;
-
     if (attachmentFile) {
-      const fileExt = attachmentFile.name.split('.').pop();
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('transaction_attachments')
-        .upload(filePath, attachmentFile);
-
+      const filePath = `${user.id}/${user.id}-${Date.now()}.${attachmentFile.name.split('.').pop()}`;
+      const { error: uploadError } = await supabase.storage.from('transaction_attachments').upload(filePath, attachmentFile);
       if (uploadError) {
         showError(`Failed to upload attachment: ${uploadError.message}`);
         setIsSaving(false);
         return;
       }
-
-      const { data: urlData } = supabase.storage
-        .from('transaction_attachments')
-        .getPublicUrl(filePath);
-      
-      attachmentUrl = urlData.publicUrl;
+      attachmentUrl = supabase.storage.from('transaction_attachments').getPublicUrl(filePath).data.publicUrl;
     }
 
     const transactionData = {
-      user_id: user.id,
-      message_type: formData.type,
-      timestamp: formData.date,
-      content: rawContent,
-      extracted_details: {
-        document: formData.document,
-        amount: formData.amount,
-        customer: formData.customer,
-        date: formData.date,
-      },
-      items_description: formData.items_description, // Include new field
-      attachment_url: attachmentUrl,
+      user_id: user.id, message_type: formData.type, timestamp: formData.date, content: rawContent,
+      extracted_details: { document: formData.document, amount: formData.amount, customer: formData.customer, date: formData.date },
+      items_description: formData.items_description, attachment_url: attachmentUrl,
     };
 
-    let error;
-    if (editingTransaction) {
-      ({ error } = await supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id));
-    } else {
-      ({ error } = await supabase.from('transactions').insert(transactionData));
-    }
+    const { error } = editingTransaction
+      ? await supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id)
+      : await supabase.from('transactions').insert(transactionData);
 
-    if (error) {
-      showError(error.message);
-    } else {
-      toast({
-        title: `Transaction ${editingTransaction ? 'updated' : 'added'}`,
-        description: `The transaction has been ${editingTransaction ? 'updated' : 'added'} successfully.`,
-      });
+    if (error) { showError(error.message); } else {
+      toast({ title: `Transaction ${editingTransaction ? 'updated' : 'added'}`, description: `The transaction has been successfully ${editingTransaction ? 'updated' : 'added'}.` });
       setIsDialogOpen(false);
       setEditingTransaction(null);
       fetchTransactions();
@@ -246,27 +171,29 @@ const Transactions = () => {
     setIsSaving(false);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => { // Add HTMLTextAreaElement
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      setAttachmentFile(e.target.files[0]);
-    } else {
-      setAttachmentFile(null);
-    }
+    setAttachmentFile(e.target.files ? e.target.files[0] : null);
+  };
+
+  const handleFilterChange = (key: string, value: any) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  };
+
+  const clearFilters = () => {
+    setFilters({ customer: '', type: '', startDate: undefined, endDate: undefined });
   };
 
   if (loading) {
-    return (
-      <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      </DashboardLayout>
-    );
+    return <DashboardLayout><div className="flex h-full items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div></DashboardLayout>;
   }
 
   return (
@@ -277,83 +204,53 @@ const Transactions = () => {
             <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
             <p className="text-gray-500">Manage your extracted transaction data</p>
           </div>
-          <div className="mt-4 sm:mt-0 flex gap-2">
-            <ExportButtons data={transactions} filename="transactions" />
-            <Button onClick={handlePrint} variant="outline">
-              <Printer className="h-4 w-4 mr-2" />
-              Print PDF
-            </Button>
+          <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
+            <ExportButtons data={filteredTransactions} filename="transactions" />
+            <Button onClick={handlePrint} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={() => {
                   setEditingTransaction(null);
-                  setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" }); // Reset new field
-                  setRawContent('');
-                  setAttachmentFile(null);
-                }}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Transaction
-                </Button>
+                  setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" });
+                  setRawContent(''); setAttachmentFile(null);
+                }}><Plus className="h-4 w-4 mr-2" />Add Transaction</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>
-                    {editingTransaction ? "Edit Transaction" : "Add New Transaction"}
-                  </DialogTitle>
-                </DialogHeader>
+                <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="document" className="text-right">Document #</Label>
-                    <Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="type" className="text-right">Type</Label>
-                    <select id="type" name="type" value={formData.type} onChange={handleInputChange} className="col-span-3 border rounded-md px-3 py-2">
-                      <option value="Invoice">Invoice</option>
-                      <option value="Receipt">Receipt</option>
-                      <option value="Bill">Bill</option>
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="date" className="text-right">Date</Label>
-                    <Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="amount" className="text-right">Amount</Label>
-                    <Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="customer" className="text-right">Customer</Label>
-                    <Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-start gap-4"> {/* Use items-start for textarea */}
-                    <Label htmlFor="items_description" className="text-right pt-2">Items Description</Label>
-                    <Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="attachment" className="text-right">Attachment</Label>
-                    <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" />
-                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Document #</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
+                  <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
+                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="attachment" className="text-right">Attachment</Label><Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" /></div>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={isSaving}>
-                    {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {editingTransaction ? "Update" : "Add"} Transaction
-                  </Button>
+                  <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingTransaction ? "Update" : "Add"} Transaction</Button>
                 </div>
               </DialogContent>
             </Dialog>
           </div>
         </div>
-        <DataTable 
-          data={transactions} 
-          columns={columns} 
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+
+        <Card>
+          <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+              <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+              <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
+              <div className="space-y-2"><Label>End Date</Label><DatePicker date={filters.endDate} setDate={(date) => handleFilterChange('endDate', date)} placeholder="Select end date" /></div>
+              <Button onClick={clearFilters} variant="ghost"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <DataTable data={filteredTransactions} columns={columns} onEdit={handleEdit} onDelete={handleDelete} />
       </div>
-      <PrintableTransactions ref={printRef} transactions={transactions} columns={columns} />
+      <PrintableTransactions ref={printRef} transactions={filteredTransactions} columns={columns} />
     </DashboardLayout>
   );
 };
