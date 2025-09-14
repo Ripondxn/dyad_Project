@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { showError } from "@/utils/toast";
-import { useReactToPrint, UseReactToPrintOptions } from 'react-to-print';
+import { useReactToPrint } from 'react-to-print';
 import PrintableTransactions from '@/components/PrintableTransactions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -55,9 +55,8 @@ const Transactions = () => {
   }>({ customer: '', type: '', startDate: undefined, endDate: undefined });
 
   const handlePrint = useReactToPrint({
-    content: () => printRef.current,
     documentTitle: "Transactions Report",
-  } as UseReactToPrintOptions);
+  });
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
@@ -216,61 +215,65 @@ const Transactions = () => {
   }
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
-            <p className="text-gray-500">Manage your extracted transaction data</p>
-          </div>
-          <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
-            <ExportButtons data={filteredTransactions} filename="transactions" />
-            <Button onClick={handlePrint} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={() => {
-                  setEditingTransaction(null);
-                  setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" });
-                  setRawContent(''); setAttachmentFile(null);
-                }}><Plus className="h-4 w-4 mr-2" />Add Transaction</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Document #</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
-                  <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
-                  <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="attachment" className="text-right">Attachment</Label><Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" /></div>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                  <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingTransaction ? "Update" : "Add"} Transaction</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
-              <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
-              <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
-              <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
-              <div className="space-y-2"><Label>End Date</Label><DatePicker date={filters.endDate} setDate={(date) => handleFilterChange('endDate', date)} placeholder="Select end date" /></div>
-              <Button onClick={clearFilters} variant="ghost"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
+    <>
+      <div className="print:hidden">
+        <DashboardLayout>
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Transactions</h1>
+                <p className="text-gray-500">Manage your extracted transaction data</p>
+              </div>
+              <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
+                <ExportButtons data={filteredTransactions} filename="transactions" />
+                <Button onClick={() => handlePrint(null, () => printRef.current)} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={() => {
+                      setEditingTransaction(null);
+                      setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" });
+                      setRawContent(''); setAttachmentFile(null);
+                    }}><Plus className="h-4 w-4 mr-2" />Add Transaction</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Document #</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
+                      <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="attachment" className="text-right">Attachment</Label><Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" /></div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                      <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingTransaction ? "Update" : "Add"} Transaction</Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
             </div>
-          </CardContent>
-        </Card>
 
-        <DataTable data={filteredTransactions} columns={columns} onEdit={handleEdit} onDelete={handleDelete} />
+            <Card>
+              <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                  <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
+                  <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
+                  <div className="space-y-2"><Label>End Date</Label><DatePicker date={filters.endDate} setDate={(date) => handleFilterChange('endDate', date)} placeholder="Select end date" /></div>
+                  <Button onClick={clearFilters} variant="ghost"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <DataTable data={filteredTransactions} columns={columns} onEdit={handleEdit} onDelete={handleDelete} />
+          </div>
+        </DashboardLayout>
       </div>
       <PrintableTransactions ref={printRef} transactions={filteredTransactions} columns={columns} />
-    </DashboardLayout>
+    </>
   );
 };
 
