@@ -1,12 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
 
-// --- DEBUGGING VERCEL ENV VARIABLES ---
-// This will help us see if the keys are being loaded in the live environment.
-console.log("Attempting to load Supabase keys...");
-console.log("VITE_SUPABASE_URL is set:", !!import.meta.env.VITE_SUPABASE_URL);
-console.log("VITE_SUPABASE_ANON_KEY is set:", !!import.meta.env.VITE_SUPABASE_ANON_KEY);
-// --- END DEBUGGING ---
-
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
