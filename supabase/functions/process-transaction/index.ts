@@ -68,7 +68,7 @@ serve(async (req) => {
       - Merchant name (customer)
       - Transaction date (in YYYY-MM-DD format)
       - Total amount (as a number, without currency symbols)
-      - Document number (if available)
+      - Document number (look for labels like 'Invoice #', 'Invoice No.', 'Receipt #', 'Bill No.', 'Document ID', etc. If available)
       - Document type (e.g., Invoice, Receipt, Bill)
       - Items description (a concise summary of the items or services, if available in the document body)
 

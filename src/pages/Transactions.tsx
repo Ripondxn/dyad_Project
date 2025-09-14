@@ -226,7 +226,7 @@ const Transactions = () => {
               </div>
               <div className="mt-4 sm:mt-0 flex flex-wrap gap-2">
                 <ExportButtons data={filteredTransactions} filename="transactions" />
-                <Button onClick={() => handlePrint(undefined, () => printRef.current)} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
+                <Button onClick={() => handlePrint(() => printRef.current)} variant="outline"><Printer className="h-4 w-4 mr-2" />Print PDF</Button>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
                     <Button onClick={() => {
@@ -248,7 +248,7 @@ const Transactions = () => {
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-                      <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}{editingTransaction ? "Update" : "Add"} Transaction</Button>
+                      <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {editingTransaction ? "Update" : "Add"} Transaction</Button>
                     </div>
                   </DialogContent>
                 </Dialog>
