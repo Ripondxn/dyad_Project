@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/ui/dashboard-layout";
 import FileUpload from "@/components/ui/file-upload";
@@ -13,7 +13,7 @@ import {
   Image, 
   Mic, 
   Paperclip,
-  Play,
+  StopCircle,
   Type,
   Loader2
 } from "lucide-react";
@@ -28,6 +28,9 @@ const Upload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractionResult, setExtractionResult] = useState<string | null>(null);
   const [parsedTransactionData, setParsedTransactionData] = useState<any | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -143,6 +146,39 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
     setText("");
   };
 
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioFile = new File([audioBlob], `recording-${Date.now()}.webm`, { type: 'audio/webm' });
+        handleFilesAccepted([audioFile]);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      toast({ title: "Recording started", description: "Click stop when you're done." });
+    } catch (err) {
+      showError("Microphone access was denied. Please enable it in your browser settings.");
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      toast({ title: "Recording stopped", description: "Your audio file has been added." });
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -244,7 +280,7 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
               </Card>
             </div>
 
-            {/* Audio Input Section - Placeholder */}
+            {/* Audio Input Section */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -254,14 +290,24 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                  <Play className="h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Record Audio</h3>
+                  <Mic className={`h-12 w-12 mb-4 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {isRecording ? "Recording..." : "Record Audio"}
+                  </h3>
                   <p className="text-sm text-gray-500 mb-4 text-center">
-                    Record voice memos with transaction details for automatic extraction
+                    Record voice memos with transaction details for automatic extraction.
                   </p>
-                  <Button disabled>
-                    Start Recording (Coming Soon)
-                  </Button>
+                  {!isRecording ? (
+                    <Button onClick={handleStartRecording}>
+                      <Mic className="h-4 w-4 mr-2" />
+                      Start Recording
+                    </Button>
+                  ) : (
+                    <Button onClick={handleStopRecording} variant="destructive">
+                      <StopCircle className="h-4 w-4 mr-2" />
+                      Stop Recording
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -64,7 +64,7 @@ serve(async (req) => {
     }
 
     const prompt = `
-      Extract the following details from the provided content (text or image of a receipt/invoice):
+      Extract the following details from the provided content (text, image of a receipt/invoice, or an audio recording describing a transaction):
       - Merchant name (customer)
       - Transaction date (in YYYY-MM-DD format)
       - Total amount (as a number, without currency symbols)
