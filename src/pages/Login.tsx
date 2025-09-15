@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
 import { Loader2 } from 'lucide-react';
-import DebugInfo from '@/components/DebugInfo';
 
 const signUpSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required' }),
@@ -34,6 +33,10 @@ const Login = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    // Log environment variables to the console for debugging
+    console.log("DEBUG: App is trying to connect to Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
+    console.log("DEBUG: Supabase Anon Key:", import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Exists' : 'MISSING or empty');
+
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
@@ -217,7 +220,6 @@ const Login = () => {
             </Card>
           </TabsContent>
         </Tabs>
-        <DebugInfo />
       </div>
     </div>
   );
