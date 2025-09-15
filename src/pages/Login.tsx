@@ -11,6 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
 import { Loader2 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 
 const signUpSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required' }),
@@ -31,9 +41,9 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 const Login = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
 
   useEffect(() => {
-    // Log environment variables to the console for debugging
     console.log("DEBUG: App is trying to connect to Supabase URL:", import.meta.env.VITE_SUPABASE_URL);
     console.log("DEBUG: Supabase Anon Key:", import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Exists' : 'MISSING or empty');
 
@@ -142,6 +152,24 @@ const Login = () => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsResetting(true);
+    const email = (e.currentTarget.elements.namedItem('reset-email') as HTMLInputElement).value;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/update-password`,
+    });
+
+    if (error) {
+      showError(error.message);
+    } else {
+      showSuccess('Password reset link sent! Please check your email.');
+      document.getElementById('close-reset-dialog')?.click();
+    }
+    setIsResetting(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="w-full max-w-md">
@@ -164,7 +192,39 @@ const Login = () => {
                     {errorsSignIn.email && <p className="text-red-500 text-sm">{errorsSignIn.email.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password">Password</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signin-password">Password</Label>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button variant="link" type="button" className="p-0 h-auto text-sm">
+                            Forgot Password?
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Reset Password</DialogTitle>
+                            <DialogDescription>
+                              Enter your email address and we'll send you a link to reset your password.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <form onSubmit={handlePasswordReset}>
+                            <div className="py-4 space-y-2">
+                              <Label htmlFor="reset-email">Email Address</Label>
+                              <Input id="reset-email" name="reset-email" type="email" placeholder="you@example.com" required />
+                            </div>
+                            <DialogFooter>
+                              <DialogClose asChild>
+                                <Button id="close-reset-dialog" type="button" variant="ghost">Cancel</Button>
+                              </DialogClose>
+                              <Button type="submit" disabled={isResetting}>
+                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Send Reset Link
+                              </Button>
+                            </DialogFooter>
+                          </form>
+                        </DialogContent>
+                      </Dialog>
+                    </div>
                     <Input id="signin-password" type="password" {...registerSignIn('password')} />
                     {errorsSignIn.password && <p className="text-red-500 text-sm">{errorsSignIn.password.message}</p>}
                   </div>

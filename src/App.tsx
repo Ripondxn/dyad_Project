@@ -14,6 +14,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import GoogleCallback from "./pages/GoogleCallback";
 import HealthCheck from "./pages/HealthCheck";
+import UpdatePassword from "./pages/UpdatePassword";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/health" element={<HealthCheck />} />
+          <Route path="/update-password" element={<UpdatePassword />} />
           
           <Route 
             path="/" 
