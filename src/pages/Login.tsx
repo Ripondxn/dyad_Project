@@ -68,63 +68,74 @@ const Login = () => {
 
   const onSignUp = async (data: SignUpFormValues) => {
     setIsSubmitting(true);
-    const { error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-      options: {
-        data: {
-          first_name: data.firstName,
-          last_name: data.lastName,
-          mobile_no: data.mobileNo,
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            mobile_no: data.mobileNo,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess('Check your email for the confirmation link!');
+      if (error) {
+        showError(error.message);
+      } else {
+        showSuccess('Check your email for the confirmation link!');
+      }
+    } catch (e: any) {
+      console.error("Sign-up network error:", e);
+      showError(`Network Error: ${e.message}. This is likely a CORS issue in your Supabase settings.`);
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
   };
 
   const onSignIn = async (data: SignInFormValues) => {
     setIsSubmitting(true);
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({
-      email: data.email,
-      password: data.password,
-    });
+    try {
+      const { data: signInData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
 
-    if (error) {
-      showError(error.message);
+      if (error) {
+        showError(error.message);
+        setIsSubmitting(false);
+        return;
+      }
+
+      if (signInData.user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', signInData.user.id)
+          .single();
+
+        if (profileError || !profile) {
+          await supabase.auth.signOut();
+          showError('Could not verify your account status. Please try again.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (profile.status === 'inactive') {
+          await supabase.auth.signOut();
+          showError('Your account is inactive. Please contact an administrator.');
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      navigate('/');
+    } catch (e: any) {
+      console.error("Sign-in network error:", e);
+      showError(`Network Error: ${e.message}. This is likely a CORS issue in your Supabase settings.`);
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    if (signInData.user) {
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('status')
-        .eq('id', signInData.user.id)
-        .single();
-
-      if (profileError || !profile) {
-        await supabase.auth.signOut();
-        showError('Could not verify your account status. Please try again.');
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (profile.status === 'inactive') {
-        await supabase.auth.signOut();
-        showError('Your account is inactive. Please contact an administrator.');
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
-    navigate('/');
-    setIsSubmitting(false);
   };
 
   return (
