@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save } from 'lucide-react';
 import AvatarUpload from '@/components/AvatarUpload';
+import config from '@/config';
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ const Profile = () => {
             console.error("Google Client ID not configured in admin panel or is empty.");
             setGoogleAuthUrl(null);
         } else {
-            const redirectUri = `${window.location.origin}/google-callback`;
+            const redirectUri = `${config.SITE_URL}/google-callback`;
             console.log("ACTION REQUIRED: Please add this exact URL to your Google Cloud Console 'Authorized redirect URIs':", redirectUri);
             
             const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');

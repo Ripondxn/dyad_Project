@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { showError } from '@/utils/toast';
+import config from '@/config';
 
 const GoogleCallback = () => {
   const [message, setMessage] = useState('Connecting to Google Drive, please wait...');
@@ -30,7 +31,7 @@ const GoogleCallback = () => {
       }
 
       // Construct the redirect URI exactly as it was used in the initial request
-      const redirectUri = `${window.location.origin}/google-callback`;
+      const redirectUri = `${config.SITE_URL}/google-callback`;
 
       const { error: functionError } = await supabase.functions.invoke('google-auth-callback', {
         body: { code, redirectUri }, // Pass the redirectUri to the function
