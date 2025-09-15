@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const DebugInfo = () => {
@@ -16,6 +16,9 @@ const DebugInfo = () => {
 
   // This is the known correct project ID from my context.
   const correctSupabaseUrl = "https://ckhkmempzhluwtufltdl.supabase.co";
+  
+  // New check for whitespace
+  const hasWhitespace = supabaseUrl && supabaseUrl.trim() !== supabaseUrl;
 
   return (
     <Card>
@@ -44,6 +47,12 @@ const DebugInfo = () => {
           <p className="font-mono break-all p-2 bg-red-100 rounded text-red-800">
             {supabaseUrl || 'NOT SET - This is the cause of the error.'}
           </p>
+          {hasWhitespace && (
+            <div className="mt-2 flex items-center gap-2 text-yellow-700">
+              <AlertTriangle className="h-4 w-4" />
+              <span>Warning: This URL contains leading/trailing whitespace.</span>
+            </div>
+          )}
         </div>
         <div>
           <p className="font-semibold">Supabase Anon Key:</p>
