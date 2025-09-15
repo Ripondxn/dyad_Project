@@ -1,271 +1,42 @@
-import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
+import { Auth } from '@supabase/auth-ui-react';
+import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { showError, showSuccess } from '@/utils/toast';
-import { Loader2 } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
-
-const signUpSchema = z.object({
-  firstName: z.string().min(1, { message: 'First name is required' }),
-  lastName: z.string().min(1, { message: 'Last name is required' }),
-  email: z.string().email({ message: 'Invalid email address' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-  mobileNo: z.string().optional(),
-});
-
-const signInSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address' }),
-  password: z.string().min(1, { message: 'Password is required' }),
-});
-
-type SignUpFormValues = z.infer<typeof signUpSchema>;
-type SignInFormValues = z.infer<typeof signInSchema>;
+import { useEffect } from 'react';
 
 const Login = () => {
   const navigate = useNavigate();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
-  const {
-    register: registerSignUp,
-    handleSubmit: handleSubmitSignUp,
-    formState: { errors: errorsSignUp },
-  } = useForm<SignUpFormValues>({
-    resolver: zodResolver(signUpSchema),
-  });
-
-  const {
-    register: registerSignIn,
-    handleSubmit: handleSubmitSignIn,
-    formState: { errors: errorsSignIn },
-  } = useForm<SignInFormValues>({
-    resolver: zodResolver(signInSchema),
-  });
-
-  const onSignUp = async (data: SignUpFormValues) => {
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            first_name: data.firstName,
-            last_name: data.lastName,
-            mobile_no: data.mobileNo,
-          },
-        },
-      });
-
-      if (error) {
-        showError(error.message);
-      } else {
-        showSuccess('Check your email for the confirmation link!');
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        // On successful login, Supabase redirects back, and this listener will catch it.
+        // We then navigate to the home page.
+        navigate('/');
       }
-    } catch (e: any) {
-      console.error("Sign-up network error:", e);
-      showError(`Network Error: ${e.message}. This is likely a CORS issue in your Supabase settings.`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const onSignIn = async (data: SignInFormValues) => {
-    setIsSubmitting(true);
-    try {
-      const { data: signInData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) {
-        showError(error.message);
-        setIsSubmitting(false);
-        return;
-      }
-
-      if (signInData.user) {
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('status')
-          .eq('id', signInData.user.id)
-          .single();
-
-        if (profileError || !profile) {
-          await supabase.auth.signOut();
-          showError('Could not verify your account status. Please try again.');
-          setIsSubmitting(false);
-          return;
-        }
-
-        if (profile.status === 'inactive') {
-          await supabase.auth.signOut();
-          showError('Your account is inactive. Please contact an administrator.');
-          setIsSubmitting(false);
-          return;
-        }
-      }
-      navigate('/');
-    } catch (e: any) {
-      console.error("Sign-in network error:", e);
-      showError(`Network Error: ${e.message}. This is likely a CORS issue in your Supabase settings.`);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handlePasswordReset = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsResetting(true);
-    const email = (e.currentTarget.elements.namedItem('reset-email') as HTMLInputElement).value;
-
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/update-password`,
     });
 
-    if (error) {
-      showError(error.message);
-    } else {
-      showSuccess('Password reset link sent! Please check your email.');
-      document.getElementById('close-reset-dialog')?.click();
-    }
-    setIsResetting(false);
-  };
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md">
-        <Tabs defaultValue="signin" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="signin">Sign In</TabsTrigger>
-            <TabsTrigger value="signup">Sign Up</TabsTrigger>
-          </TabsList>
-          <TabsContent value="signin">
-            <Card>
-              <CardHeader>
-                <CardTitle>Sign In</CardTitle>
-                <CardDescription>Enter your credentials to access your account.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmitSignIn(onSignIn)} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signin-email">Email</Label>
-                    <Input id="signin-email" type="email" {...registerSignIn('email')} />
-                    {errorsSignIn.email && <p className="text-red-500 text-sm">{errorsSignIn.email.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="signin-password">Password</Label>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="link" type="button" className="p-0 h-auto text-sm">
-                            Forgot Password?
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Reset Password</DialogTitle>
-                            <DialogDescription>
-                              Enter your email address and we'll send you a link to reset your password.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <form onSubmit={handlePasswordReset}>
-                            <div className="py-4 space-y-2">
-                              <Label htmlFor="reset-email">Email Address</Label>
-                              <Input id="reset-email" name="reset-email" type="email" placeholder="you@example.com" required />
-                            </div>
-                            <DialogFooter>
-                              <DialogClose asChild>
-                                <Button id="close-reset-dialog" type="button" variant="ghost">Cancel</Button>
-                              </DialogClose>
-                              <Button type="submit" disabled={isResetting}>
-                                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Send Reset Link
-                              </Button>
-                            </DialogFooter>
-                          </form>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                    <Input id="signin-password" type="password" {...registerSignIn('password')} />
-                    {errorsSignIn.password && <p className="text-red-500 text-sm">{errorsSignIn.password.message}</p>}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign In
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="signup">
-            <Card>
-              <CardHeader>
-                <CardTitle>Sign Up</CardTitle>
-                <CardDescription>Create a new account to get started.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleSubmitSignUp(onSignUp)} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
-                      <Input id="firstName" {...registerSignUp('firstName')} />
-                      {errorsSignUp.firstName && <p className="text-red-500 text-sm">{errorsSignUp.firstName.message}</p>}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <Input id="lastName" {...registerSignUp('lastName')} />
-                      {errorsSignUp.lastName && <p className="text-red-500 text-sm">{errorsSignUp.lastName.message}</p>}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" type="email" {...registerSignUp('email')} />
-                    {errorsSignUp.email && <p className="text-red-500 text-sm">{errorsSignUp.email.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input id="signup-password" type="password" {...registerSignUp('password')} />
-                    {errorsSignUp.password && <p className="text-red-500 text-sm">{errorsSignUp.password.message}</p>}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="mobileNo">Mobile No. (Optional)</Label>
-                    <Input id="mobileNo" {...registerSignUp('mobileNo')} />
-                    {errorsSignUp.mobileNo && <p className="text-red-500 text-sm">{errorsSignUp.mobileNo.message}</p>}
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>
-                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Sign Up
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-        <div className="text-center mt-4 text-sm text-muted-foreground">
-          Having trouble connecting?{' '}
-          <Link to="/health" className="underline hover:text-primary">
-            Run a connection test.
-          </Link>
-        </div>
-      </div>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Welcome</CardTitle>
+          <CardDescription>Sign in or create an account to continue</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Auth
+            supabaseClient={supabase}
+            appearance={{ theme: ThemeSupa }}
+            providers={['google', 'azure']}
+            theme="light"
+            redirectTo={`${window.location.origin}/`}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
