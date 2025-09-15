@@ -9,17 +9,20 @@ const EnvironmentGate = ({ children }: { children: React.ReactNode }) => {
   if (!supabaseUrl || !supabaseAnonKey) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="w-full max-w-lg space-y-6">
+        <div className="w-full max-w-2xl space-y-6">
           <Card className="border-red-500 border-2">
             <CardHeader>
-              <CardTitle className="text-red-600">Configuration Error</CardTitle>
+              <CardTitle className="text-red-600">Critical Configuration Error</CardTitle>
               <CardDescription>
                 Your application is missing essential Supabase environment variables.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p className="mb-4">
-                The application cannot start because it doesn't know how to connect to your Supabase project. Please ensure you have a <code>.env</code> file in the root of your project with the correct values.
+                The application cannot start because it doesn't know how to connect to your Supabase project. This is the most common cause of "Failed to fetch" or "Site can't be reached" errors.
+              </p>
+              <p className="mb-4">
+                Please go to the <strong>Environment Variables</strong> section in the Dyad UI and ensure that <code>VITE_SUPABASE_URL</code> and <code>VITE_SUPABASE_ANON_KEY</code> are set correctly.
               </p>
               <DebugInfo />
             </CardContent>
