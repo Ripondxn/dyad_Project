@@ -52,7 +52,11 @@ const DebugInfo = () => {
           </p>
         </div>
         <div className="pt-2 text-xs text-gray-500">
-          If the "URL Your App is Currently Using" does not exactly match the "Correct Supabase URL", the connection will fail. After correcting it, you must restart the app.
+          If the "URL Your App is Currently Using" does not exactly match the "Correct Supabase URL", the connection will fail.
+        </div>
+        <div className="mt-4 p-3 bg-yellow-100 border border-yellow-300 text-yellow-800 rounded-md">
+          <h4 className="font-bold">Action Required</h4>
+          <p>If you have updated your environment variables, you **must** restart the application for the changes to take effect. Look for the "Restart" button above the chat input.</p>
         </div>
       </CardContent>
     </Card>
