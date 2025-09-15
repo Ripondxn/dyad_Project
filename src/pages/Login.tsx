@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { showError, showSuccess } from '@/utils/toast';
 import { Loader2 } from 'lucide-react';
+import DebugInfo from '@/components/DebugInfo';
 
 const signUpSchema = z.object({
   firstName: z.string().min(1, { message: 'First name is required' }),
@@ -139,82 +140,85 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <Tabs defaultValue="signin" className="w-full max-w-md">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="signin">Sign In</TabsTrigger>
-          <TabsTrigger value="signup">Sign Up</TabsTrigger>
-        </TabsList>
-        <TabsContent value="signin">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sign In</CardTitle>
-              <CardDescription>Enter your credentials to access your account.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitSignIn(onSignIn)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input id="signin-email" type="email" {...registerSignIn('email')} />
-                  {errorsSignIn.email && <p className="text-red-500 text-sm">{errorsSignIn.email.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input id="signin-password" type="password" {...registerSignIn('password')} />
-                  {errorsSignIn.password && <p className="text-red-500 text-sm">{errorsSignIn.password.message}</p>}
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign In
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="signup">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sign Up</CardTitle>
-              <CardDescription>Create a new account to get started.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmitSignUp(onSignUp)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+      <div className="w-full max-w-md">
+        <Tabs defaultValue="signin" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="signin">Sign In</TabsTrigger>
+            <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          </TabsList>
+          <TabsContent value="signin">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sign In</CardTitle>
+                <CardDescription>Enter your credentials to access your account.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitSignIn(onSignIn)} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" {...registerSignUp('firstName')} />
-                    {errorsSignUp.firstName && <p className="text-red-500 text-sm">{errorsSignUp.firstName.message}</p>}
+                    <Label htmlFor="signin-email">Email</Label>
+                    <Input id="signin-email" type="email" {...registerSignIn('email')} />
+                    {errorsSignIn.email && <p className="text-red-500 text-sm">{errorsSignIn.email.message}</p>}
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" {...registerSignUp('lastName')} />
-                    {errorsSignUp.lastName && <p className="text-red-500 text-sm">{errorsSignUp.lastName.message}</p>}
+                    <Label htmlFor="signin-password">Password</Label>
+                    <Input id="signin-password" type="password" {...registerSignIn('password')} />
+                    {errorsSignIn.password && <p className="text-red-500 text-sm">{errorsSignIn.password.message}</p>}
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input id="signup-email" type="email" {...registerSignUp('email')} />
-                  {errorsSignUp.email && <p className="text-red-500 text-sm">{errorsSignUp.email.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input id="signup-password" type="password" {...registerSignUp('password')} />
-                  {errorsSignUp.password && <p className="text-red-500 text-sm">{errorsSignUp.password.message}</p>}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="mobileNo">Mobile No. (Optional)</Label>
-                  <Input id="mobileNo" {...registerSignUp('mobileNo')} />
-                  {errorsSignUp.mobileNo && <p className="text-red-500 text-sm">{errorsSignUp.mobileNo.message}</p>}
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Sign Up
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign In
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="signup">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sign Up</CardTitle>
+                <CardDescription>Create a new account to get started.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitSignUp(onSignUp)} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input id="firstName" {...registerSignUp('firstName')} />
+                      {errorsSignUp.firstName && <p className="text-red-500 text-sm">{errorsSignUp.firstName.message}</p>}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input id="lastName" {...registerSignUp('lastName')} />
+                      {errorsSignUp.lastName && <p className="text-red-500 text-sm">{errorsSignUp.lastName.message}</p>}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-email">Email</Label>
+                    <Input id="signup-email" type="email" {...registerSignUp('email')} />
+                    {errorsSignUp.email && <p className="text-red-500 text-sm">{errorsSignUp.email.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-password">Password</Label>
+                    <Input id="signup-password" type="password" {...registerSignUp('password')} />
+                    {errorsSignUp.password && <p className="text-red-500 text-sm">{errorsSignUp.password.message}</p>}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="mobileNo">Mobile No. (Optional)</Label>
+                    <Input id="mobileNo" {...registerSignUp('mobileNo')} />
+                    {errorsSignUp.mobileNo && <p className="text-red-500 text-sm">{errorsSignUp.mobileNo.message}</p>}
+                  </div>
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Sign Up
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+        <DebugInfo />
+      </div>
     </div>
   );
 };
