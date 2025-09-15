@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -259,6 +259,12 @@ const Login = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        <div className="text-center mt-4 text-sm text-muted-foreground">
+          Having trouble connecting?{' '}
+          <Link to="/health" className="underline hover:text-primary">
+            Run a connection test.
+          </Link>
+        </div>
       </div>
     </div>
   );
