@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy } from 'lucide-react';
+import { Copy, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleLoginHelp = () => {
@@ -16,18 +16,45 @@ const GoogleLoginHelp = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-3xl">
         <CardHeader>
-          <CardTitle>Troubleshooting Google Login</CardTitle>
+          <CardTitle>Troubleshooting Google Login (403: access_denied)</CardTitle>
           <CardDescription>
-            Follow these steps to ensure your Google login is configured correctly. The most common issues are an incorrect Redirect URI or the app being in "Testing" mode.
+            This error almost always indicates a configuration mismatch in the Google Cloud Console. Please carefully check the following settings.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          
+          <Card className="bg-yellow-50 border-yellow-200">
+            <CardHeader className="flex-row items-start gap-4 space-y-0">
+              <AlertTriangle className="h-6 w-6 text-yellow-600 mt-1" />
+              <div>
+                <CardTitle className="text-lg">Most Common Fixes</CardTitle>
+                <CardDescription className="text-yellow-800">
+                  Start here. The issue is likely one of these two settings.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <h3 className="font-semibold mb-1">1. Check Publishing Status</h3>
+                <p className="text-sm text-muted-foreground">
+                  Go to the <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OAuth consent screen</a>. Under "Publishing status", ensure it says <strong className="text-green-600">In production</strong>. If it says "Testing", click "PUBLISH APP".
+                </p>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-1">2. Check User Type</h3>
+                <p className="text-sm text-muted-foreground">
+                  On the same <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OAuth consent screen</a>, find "User type". It <strong className="text-red-600">must</strong> be set to <strong className="text-green-600">External</strong>. If it's "Internal", only users in your Google Workspace can log in. You may need to recreate the consent screen if this is set incorrectly.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 1: Copy Your Supabase Callback URL</h3>
+            <h3 className="font-semibold text-lg mb-2">Step 1: Verify Your Supabase Callback URL</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              This is the unique URL that Google needs to send users back to after they log in.
+              This URL must be present in your Google Cloud project's "Authorized redirect URIs".
             </p>
             <div className="flex items-center gap-2">
               <p className="font-mono break-all p-2 bg-gray-100 rounded flex-grow text-sm">
@@ -37,52 +64,30 @@ const GoogleLoginHelp = () => {
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
-          </div>
-
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Step 2: Add the URL to Google Cloud Console</h3>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Google Cloud Console Credentials page</a>.</li>
-              <li>Select the project you are using for this application.</li>
-              <li>Find your OAuth 2.0 Client ID under the "OAuth 2.0 Client IDs" section and click on it to edit.</li>
-              <li>Under the "Authorized redirect URIs" section, click "ADD URI".</li>
-              <li>Paste the Supabase callback URL you copied in Step 1.</li>
-              <li>Click "Save" at the bottom of the page.</li>
+             <ol className="list-decimal list-inside space-y-1 text-sm mt-2 pl-2">
+              <li>Go to the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Credentials page</a>.</li>
+              <li>Click on your OAuth 2.0 Client ID to edit it.</li>
+              <li>Ensure the URL above is listed under "Authorized redirect URIs".</li>
             </ol>
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 3: Publish Your App</h3>
+            <h3 className="font-semibold text-lg mb-2">Step 2: Verify Your Supabase Configuration</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              The 403 error often happens when your app is in "Testing" mode. You need to publish it.
+              The Client ID and Secret must be copied exactly from Google Cloud into your Supabase dashboard. Even a small mistake will cause an error.
             </p>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>In the Google Cloud Console, go to the <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OAuth consent screen</a> page.</li>
-              <li>Under "Publishing status", you will likely see "Testing". Click the "PUBLISH APP" button.</li>
-              <li>Confirm the action in the pop-up window. The status should now change to "Production".</li>
-              <li>(If you prefer to keep it in testing, you must add your Google account email to the "Test users" list on this same page).</li>
+            <ol className="list-decimal list-inside space-y-2 text-sm pl-2">
+              <li>In the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Credentials page</a>, find your OAuth Client ID. Make sure its "Type" is <strong className="text-green-600">Web application</strong>.</li>
+              <li>Copy the "Client ID" and "Client secret" again.</li>
+              <li>Go to your <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Supabase Dashboard</a> &rarr; Authentication &rarr; Providers.</li>
+              <li>In the Google provider settings, paste the credentials again to be sure they are correct.</li>
             </ol>
           </div>
 
-          <div>
-            <h3 className="font-semibold text-lg mb-2">Step 4: Verify Your Supabase Configuration</h3>
-            <ol className="list-decimal list-inside space-y-2 text-sm">
-              <li>Go to your <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Supabase Dashboard</a> and select your project.</li>
-              <li>Navigate to <span className="font-semibold">Authentication</span> &rarr; <span className="font-semibold">Providers</span>.</li>
-              <li>Ensure the <span className="font-semibold">Google</span> provider is enabled.</li>
-              <li>Make sure the Client ID and Client Secret from your Google Cloud project are correctly entered here.</li>
-            </ol>
-          </div>
-
-          <div className="pt-4 border-t">
-            <p className="text-sm text-center text-muted-foreground">
-              After completing these steps, your Google login should work correctly.
-            </p>
-            <div className="text-center mt-4">
-              <Button asChild>
-                <Link to="/login">Back to Login</Link>
-              </Button>
-            </div>
+          <div className="pt-4 border-t text-center">
+            <Button asChild>
+              <Link to="/login">Back to Login</Link>
+            </Button>
           </div>
         </CardContent>
       </Card>
