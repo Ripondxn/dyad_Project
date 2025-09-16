@@ -3,7 +3,7 @@ import DashboardLayout from '@/components/ui/dashboard-layout';
 import DataTable from '@/components/ui/data-table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, KeyRound, Save } from 'lucide-react';
+import { Loader2, Plus, KeyRound, Save, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const newUserSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -55,6 +56,19 @@ const Admin = () => {
   const [isSavingGoogleKeys, setIsSavingGoogleKeys] = useState(false);
   const { toast } = useToast();
 
+  const { setCurrencySymbol: setGlobalCurrencySymbol } = useCurrency();
+  const [currencySettings, setCurrencySettings] = useState({ symbol: '$', code: 'USD' });
+  const [selectedPreset, setSelectedPreset] = useState('USD');
+  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
+
+  const defaultCurrencies: { [key: string]: { symbol: string; code: string } } = {
+    'USD': { symbol: '$', code: 'USD' },
+    'EUR': { symbol: '€', code: 'EUR' },
+    'GBP': { symbol: '£', code: 'GBP' },
+    'JPY': { symbol: '¥', code: 'JPY' },
+    'custom': { symbol: '', code: '' }
+  };
+
   const { register, handleSubmit, formState: { errors }, reset } = useForm<NewUserFormValues>({
     resolver: zodResolver(newUserSchema),
   });
@@ -78,17 +92,27 @@ const Admin = () => {
   });
 
   const fetchProfiles = useCallback(async () => {
-    setLoading(true);
     const { data, error } = await supabase.rpc('get_all_users_with_profiles');
     if (error) {
       toast({ title: 'Error fetching users', description: error.message, variant: 'destructive' });
     } else {
       setProfiles(data);
     }
-    setLoading(false);
   }, [toast]);
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  const fetchInitialSettings = useCallback(async () => {
+    setLoading(true);
+    await fetchProfiles();
+    const { data } = await supabase.from('app_settings').select('*').single();
+    if (data) {
+      const preset = Object.keys(defaultCurrencies).find(key => defaultCurrencies[key].code === data.currency_code && defaultCurrencies[key].symbol === data.currency_symbol) || 'custom';
+      setSelectedPreset(preset);
+      setCurrencySettings({ symbol: data.currency_symbol, code: data.currency_code });
+    }
+    setLoading(false);
+  }, [fetchProfiles]);
+
+  useEffect(() => { fetchInitialSettings(); }, [fetchInitialSettings]);
 
   const handleEdit = (profile: Profile) => {
     setEditingProfile(profile);
@@ -185,6 +209,39 @@ const Admin = () => {
     setIsSavingGoogleKeys(false);
   };
 
+  const handlePresetChange = (value: string) => {
+    setSelectedPreset(value);
+    if (value !== 'custom') {
+      setCurrencySettings(defaultCurrencies[value]);
+    } else {
+      setCurrencySettings({ symbol: '', code: '' });
+    }
+  };
+
+  const handleCustomChange = (field: 'symbol' | 'code', value: string) => {
+    setCurrencySettings(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveCurrency = async () => {
+    setIsSavingCurrency(true);
+    const { error } = await supabase
+      .from('app_settings')
+      .update({
+        currency_symbol: currencySettings.symbol,
+        currency_code: currencySettings.code,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', 1);
+
+    if (error) {
+      toast({ title: 'Error saving currency', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Currency settings updated!' });
+      setGlobalCurrencySymbol(currencySettings.symbol);
+    }
+    setIsSavingCurrency(false);
+  };
+
   const columns = [
     { key: 'email', label: 'Email' }, { key: 'first_name', label: 'First Name' },
     { key: 'last_name', label: 'Last Name' }, { key: 'role', label: 'Role' }, { key: 'status', label: 'Status' },
@@ -269,6 +326,46 @@ const Admin = () => {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" />Currency Settings</CardTitle>
+            <CardDescription>Set the default currency for the application.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Currency Preset</Label>
+              <Select value={selectedPreset} onValueChange={handlePresetChange}>
+                <SelectTrigger className="max-w-xs">
+                  <SelectValue placeholder="Select a currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="GBP">GBP (£)</SelectItem>
+                  <SelectItem value="JPY">JPY (¥)</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {selectedPreset === 'custom' && (
+              <div className="grid grid-cols-2 gap-4 max-w-xs">
+                <div className="space-y-2">
+                  <Label htmlFor="customSymbol">Symbol</Label>
+                  <Input id="customSymbol" placeholder="e.g., $" value={currencySettings.symbol} onChange={(e) => handleCustomChange('symbol', e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="customCode">Code</Label>
+                  <Input id="customCode" placeholder="e.g., USD" value={currencySettings.code} onChange={(e) => handleCustomChange('code', e.target.value)} />
+                </div>
+              </div>
+            )}
+            <Button onClick={handleSaveCurrency} disabled={isSavingCurrency}>
+              {isSavingCurrency && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Currency
+            </Button>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

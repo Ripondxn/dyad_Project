@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import VatCalculator, { VatDetails } from "@/components/VatCalculator";
+import { useCurrency } from "@/contexts/CurrencyContext";
 
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -46,6 +47,7 @@ const Transactions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
+  const { currencySymbol } = useCurrency();
 
   const [filters, setFilters] = useState<{
     customer: string;
@@ -82,9 +84,13 @@ const Transactions = () => {
           date: details.date || '',
           customer: details.customer || '',
           items_description: t.items_description || '',
-          subtotal: parseFloat(details.subtotal || details.amount || 0).toFixed(2),
-          vatAmount: parseFloat(details.vatAmount || 0).toFixed(2),
-          totalAmount: parseFloat(details.totalAmount || details.amount || 0).toFixed(2),
+          subtotal: `${currencySymbol}${(parseFloat(details.subtotal || details.amount || 0)).toFixed(2)}`,
+          vatAmount: `${currencySymbol}${(parseFloat(details.vatAmount || 0)).toFixed(2)}`,
+          totalAmount: `${currencySymbol}${(parseFloat(details.totalAmount || details.amount || 0)).toFixed(2)}`,
+          // Keep raw values for editing
+          raw_subtotal: parseFloat(details.subtotal || details.amount || 0),
+          raw_vatAmount: parseFloat(details.vatAmount || 0),
+          raw_totalAmount: parseFloat(details.totalAmount || details.amount || 0),
           vatRate: details.vatRate || 0,
           vatStatus: details.vatStatus || 'exclusive',
           attachment: t.attachment_url ? (
@@ -98,7 +104,7 @@ const Transactions = () => {
       setTransactions(formattedData);
     }
     setLoading(false);
-  }, []);
+  }, [currencySymbol]);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
@@ -156,10 +162,10 @@ const Transactions = () => {
       customer: transaction.customer, items_description: transaction.items_description || "",
     });
     setVatDetails({
-      subtotal: parseFloat(transaction.subtotal) || 0,
-      vatRate: parseFloat(transaction.vatRate) || 0,
-      vatAmount: parseFloat(transaction.vatAmount) || 0,
-      totalAmount: parseFloat(transaction.totalAmount) || 0,
+      subtotal: transaction.raw_subtotal || 0,
+      vatRate: transaction.vatRate || 0,
+      vatAmount: transaction.raw_vatAmount || 0,
+      totalAmount: transaction.raw_totalAmount || 0,
       vatStatus: transaction.vatStatus || 'exclusive',
     });
     setRawContent(transaction.content || '');
