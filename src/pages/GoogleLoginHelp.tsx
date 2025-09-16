@@ -20,7 +20,7 @@ const GoogleLoginHelp = () => {
         <CardHeader>
           <CardTitle>Troubleshooting Google Login</CardTitle>
           <CardDescription>
-            Follow these steps to ensure your Google login is configured correctly. The most common issue is a missing or incorrect Redirect URI in your Google Cloud project.
+            Follow these steps to ensure your Google login is configured correctly. The most common issues are an incorrect Redirect URI or the app being in "Testing" mode.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -52,7 +52,20 @@ const GoogleLoginHelp = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 3: Verify Your Supabase Configuration</h3>
+            <h3 className="font-semibold text-lg mb-2">Step 3: Publish Your App</h3>
+            <p className="text-sm text-muted-foreground mb-2">
+              The 403 error often happens when your app is in "Testing" mode. You need to publish it.
+            </p>
+            <ol className="list-decimal list-inside space-y-2 text-sm">
+              <li>In the Google Cloud Console, go to the <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OAuth consent screen</a> page.</li>
+              <li>Under "Publishing status", you will likely see "Testing". Click the "PUBLISH APP" button.</li>
+              <li>Confirm the action in the pop-up window. The status should now change to "Production".</li>
+              <li>(If you prefer to keep it in testing, you must add your Google account email to the "Test users" list on this same page).</li>
+            </ol>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-lg mb-2">Step 4: Verify Your Supabase Configuration</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm">
               <li>Go to your <a href="https://supabase.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Supabase Dashboard</a> and select your project.</li>
               <li>Navigate to <span className="font-semibold">Authentication</span> &rarr; <span className="font-semibold">Providers</span>.</li>
