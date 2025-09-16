@@ -15,11 +15,13 @@ import {
   Paperclip,
   StopCircle,
   Type,
-  Loader2
+  Loader2,
+  Camera
 } from "lucide-react";
 import ExtractionResult from "@/components/ExtractionResult";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess, showLoading, dismissToast } from "@/utils/toast";
+import CameraCapture from "@/components/CameraCapture";
 
 const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -31,10 +33,15 @@ const Upload = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const navigate = useNavigate();
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
 
   const handleFilesAccepted = (newFiles: File[]) => {
     setFiles(prev => [...prev, ...newFiles]);
     showSuccess(`${newFiles.length} file(s) added successfully`);
+  };
+
+  const handleCapture = (file: File) => {
+    handleFilesAccepted([file]);
   };
 
   const handleProcess = async () => {
@@ -82,13 +89,10 @@ const Upload = () => {
       });
 
       if (error) {
-        // Check if the error context is a response object that can be parsed
         if (error.context && typeof error.context.json === 'function') {
           const errorBody = await error.context.json();
-          // Throw a new error with the specific message from the function
           throw new Error(errorBody.error || error.message);
         }
-        // Fallback for other types of errors
         throw error;
       }
       
@@ -121,7 +125,6 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
 
     } catch (error: any) {
       console.error("Processing error:", error);
-      // The error message is now the detailed one from the function
       showError(error.message || "An unknown error occurred during processing.");
     } finally {
       setIsProcessing(false);
@@ -207,7 +210,6 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
         ) : (
           <>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* File Upload Section */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -261,7 +263,6 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
                 </CardContent>
               </Card>
 
-              {/* Text Input Section */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -285,39 +286,63 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
               </Card>
             </div>
 
-            {/* Audio Input Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Mic className="h-5 w-5" />
-                  Audio Input
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
-                  <Mic className={`h-12 w-12 mb-4 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    {isRecording ? "Recording..." : "Record Audio"}
-                  </h3>
-                  <p className="text-sm text-gray-500 mb-4 text-center">
-                    Record voice memos with transaction details for automatic extraction.
-                  </p>
-                  {!isRecording ? (
-                    <Button onClick={handleStartRecording}>
-                      <Mic className="h-4 w-4 mr-2" />
-                      Start Recording
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Camera className="h-5 w-5" />
+                    Camera Input
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Camera className="h-12 w-12 mb-4 text-gray-400" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      Capture with Camera
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-4 text-center">
+                      Take a picture of an invoice, receipt, or bill directly.
+                    </p>
+                    <Button onClick={() => setIsCameraOpen(true)}>
+                      <Camera className="h-4 w-4 mr-2" />
+                      Open Camera
                     </Button>
-                  ) : (
-                    <Button onClick={handleStopRecording} variant="destructive">
-                      <StopCircle className="h-4 w-4 mr-2" />
-                      Stop Recording
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
 
-            {/* Process Button */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mic className="h-5 w-5" />
+                    Audio Input
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-gray-300 rounded-lg">
+                    <Mic className={`h-12 w-12 mb-4 ${isRecording ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      {isRecording ? "Recording..." : "Record Audio"}
+                    </h3>
+                    <p className="text-sm text-gray-500 mb-4 text-center">
+                      Record voice memos with transaction details for automatic extraction.
+                    </p>
+                    {!isRecording ? (
+                      <Button onClick={handleStartRecording}>
+                        <Mic className="h-4 w-4 mr-2" />
+                        Start Recording
+                      </Button>
+                    ) : (
+                      <Button onClick={handleStopRecording} variant="destructive">
+                        <StopCircle className="h-4 w-4 mr-2" />
+                        Stop Recording
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
             <div className="flex justify-end">
               <Button 
                 onClick={handleProcess}
@@ -332,6 +357,11 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
           </>
         )}
       </div>
+      <CameraCapture
+        open={isCameraOpen}
+        onOpenChange={setIsCameraOpen}
+        onCapture={handleCapture}
+      />
     </DashboardLayout>
   );
 };
