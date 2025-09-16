@@ -48,6 +48,8 @@ const Admin = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [editingFirstName, setEditingFirstName] = useState('');
+  const [editingLastName, setEditingLastName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [isSavingGoogleKeys, setIsSavingGoogleKeys] = useState(false);
@@ -92,6 +94,8 @@ const Admin = () => {
     setEditingProfile(profile);
     setSelectedRole(profile.role);
     setSelectedStatus(profile.status);
+    setEditingFirstName(profile.first_name || '');
+    setEditingLastName(profile.last_name || '');
     setIsEditDialogOpen(true);
   };
 
@@ -110,7 +114,12 @@ const Admin = () => {
   const handleUpdateChanges = async () => {
     if (!editingProfile) return;
     setIsSaving(true);
-    const { error } = await supabase.from('profiles').update({ role: selectedRole, status: selectedStatus }).eq('id', editingProfile.id);
+    const { error } = await supabase.from('profiles').update({ 
+      role: selectedRole, 
+      status: selectedStatus,
+      first_name: editingFirstName,
+      last_name: editingLastName,
+    }).eq('id', editingProfile.id);
     if (error) {
       toast({ title: 'Error updating user', description: error.message, variant: 'destructive' });
     } else {
@@ -266,7 +275,9 @@ const Admin = () => {
         <DialogContent>
           <DialogHeader><DialogTitle>Edit User</DialogTitle></DialogHeader>
           <div className="py-4 space-y-4">
-            <p>Editing role for: <span className="font-medium">{editingProfile?.email}</span></p>
+            <p>Editing user: <span className="font-medium">{editingProfile?.email}</span></p>
+            <div className="space-y-2"><Label htmlFor="firstName">First Name</Label><Input id="firstName" value={editingFirstName} onChange={(e) => setEditingFirstName(e.target.value)} /></div>
+            <div className="space-y-2"><Label htmlFor="lastName">Last Name</Label><Input id="lastName" value={editingLastName} onChange={(e) => setEditingLastName(e.target.value)} /></div>
             <div className="space-y-2"><Label htmlFor="role">Role</Label><Select value={selectedRole} onValueChange={setSelectedRole}><SelectTrigger><SelectValue placeholder="Select a role" /></SelectTrigger><SelectContent><SelectItem value="user">User</SelectItem><SelectItem value="admin">Admin</SelectItem></SelectContent></Select></div>
             <div className="space-y-2"><Label htmlFor="status">Status</Label><Select value={selectedStatus} onValueChange={setSelectedStatus}><SelectTrigger><SelectValue placeholder="Select a status" /></SelectTrigger><SelectContent><SelectItem value="active">Active</SelectItem><SelectItem value="inactive">Inactive</SelectItem></SelectContent></Select></div>
           </div>

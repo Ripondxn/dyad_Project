@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/ui/dashboard-layout";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ interface SummaryData {
 const Index = () => {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchSummaryData = async () => {
@@ -63,7 +65,10 @@ const Index = () => {
 
         {/* Summary Cards */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card>
+          <Card 
+            onClick={() => navigate('/transactions')}
+            className="cursor-pointer hover:bg-gray-50 transition-colors"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
               <List className="h-4 w-4 text-muted-foreground" />
@@ -79,7 +84,10 @@ const Index = () => {
               )}
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            onClick={() => navigate('/transactions')}
+            className="cursor-pointer hover:bg-gray-50 transition-colors"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Extracted Value</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
@@ -97,7 +105,10 @@ const Index = () => {
               )}
             </CardContent>
           </Card>
-          <Card>
+          <Card 
+            onClick={() => navigate('/transactions')}
+            className="cursor-pointer hover:bg-gray-50 transition-colors"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Recent Uploads</CardTitle>
               <Upload className="h-4 w-4 text-muted-foreground" />
