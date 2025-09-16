@@ -41,7 +41,7 @@ serve(async (req) => {
   }
 
   try {
-    // 1. Authenticate user and get their profile with Google tokens
+    // 1. Authenticate user
     const supabaseClient = createClient(
       // @ts-ignore
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -62,17 +62,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { data: profile, error: profileError } = await supabaseAdmin
+    // 2. Get user's profile, or fallback to an admin's profile
+    let { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('google_drive_refresh_token, google_drive_access_token, google_drive_token_expiry')
+      .select('id, google_drive_refresh_token, google_drive_access_token, google_drive_token_expiry')
       .eq('id', user.id)
       .single();
 
-    if (profileError || !profile.google_drive_refresh_token) {
-      throw new Error('Google Drive is not connected for this user.');
+    if (profileError) throw profileError;
+
+    if (!profile.google_drive_refresh_token) {
+      const { data: adminProfile, error: adminError } = await supabaseAdmin
+        .from('profiles')
+        .select('id, google_drive_refresh_token, google_drive_access_token, google_drive_token_expiry')
+        .eq('role', 'admin')
+        .not('google_drive_refresh_token', 'is', null)
+        .limit(1)
+        .single();
+
+      if (adminError || !adminProfile) {
+        throw new Error('Your Google Drive is not connected, and no admin account is configured as a fallback. Please connect your account or contact an administrator.');
+      }
+      profile = adminProfile;
     }
 
-    // 2. Refresh access token if it's expired
+    // 3. Refresh access token if it's expired
     let accessToken = profile.google_drive_access_token;
     if (!profile.google_drive_token_expiry || new Date() >= new Date(profile.google_drive_token_expiry)) {
       const { data: keys, error: keysError } = await supabaseAdmin
@@ -104,10 +118,10 @@ serve(async (req) => {
       await supabaseAdmin.from('profiles').update({
         google_drive_access_token: accessToken,
         google_drive_token_expiry: expiryDate.toISOString(),
-      }).eq('id', user.id);
+      }).eq('id', profile.id);
     }
 
-    // 3. Find or create the application folder in Google Drive
+    // 4. Find or create the application folder in Google Drive
     const searchFolderUrl = `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.folder' and name='${APP_FOLDER_NAME}' and trashed=false&spaces=drive`;
     const searchResponse = await fetch(searchFolderUrl, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -130,7 +144,7 @@ serve(async (req) => {
       folderId = newFolder.id;
     }
 
-    // 4. Find the transactions.csv file
+    // 5. Find the transactions.csv file
     const searchFileUrl = `https://www.googleapis.com/drive/v3/files?q=name='${CSV_FILE_NAME}' and '${folderId}' in parents and trashed=false&fields=files(id)`;
     const searchFileResponse = await fetch(searchFileUrl, {
         headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -138,7 +152,7 @@ serve(async (req) => {
     const searchFileResult = await searchFileResponse.json();
     const fileId = searchFileResult.files && searchFileResult.files.length > 0 ? searchFileResult.files[0].id : null;
 
-    // 5. Create or update the file
+    // 6. Create or update the file
     if (fileId) {
         // File exists: Append new data
         const downloadResponse = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
