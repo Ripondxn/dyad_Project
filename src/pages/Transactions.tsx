@@ -19,17 +19,7 @@ import PrintableTransactions from '@/components/PrintableTransactions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
-
-interface Transaction {
-  id: string;
-  document: string;
-  type: string;
-  date: string;
-  amount: string;
-  customer: string;
-  items_description?: string;
-  attachment_url?: string;
-}
+import VatCalculator, { VatDetails } from "@/components/VatCalculator";
 
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -42,10 +32,13 @@ const Transactions = () => {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<any | null>(null);
   const [rawContent, setRawContent] = useState('');
   const [formData, setFormData] = useState({
-    document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "",
+    document: "", type: "Invoice", date: "", customer: "", items_description: "",
+  });
+  const [vatDetails, setVatDetails] = useState<VatDetails>({
+    subtotal: 0, vatRate: 0, vatAmount: 0, totalAmount: 0, vatStatus: 'exclusive',
   });
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -80,21 +73,28 @@ const Transactions = () => {
     if (error) {
       showError(error.message);
     } else if (data) {
-      const formattedData = data.map(t => ({
-        id: t.id,
-        document: t.extracted_details?.document || '',
-        type: t.message_type || 'N/A',
-        date: t.extracted_details?.date || '',
-        amount: t.extracted_details?.amount || '',
-        customer: t.extracted_details?.customer || '',
-        items_description: t.items_description || '',
-        attachment: t.attachment_url ? (
-          <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
-            <Paperclip className="h-4 w-4 mr-1" /> View
-          </a>
-        ) : 'None',
-        attachment_url: t.attachment_url,
-      }));
+      const formattedData = data.map(t => {
+        const details = t.extracted_details || {};
+        return {
+          id: t.id,
+          document: details.document || '',
+          type: t.message_type || 'N/A',
+          date: details.date || '',
+          customer: details.customer || '',
+          items_description: t.items_description || '',
+          subtotal: parseFloat(details.subtotal || details.amount || 0).toFixed(2),
+          vatAmount: parseFloat(details.vatAmount || 0).toFixed(2),
+          totalAmount: parseFloat(details.totalAmount || details.amount || 0).toFixed(2),
+          vatRate: details.vatRate || 0,
+          vatStatus: details.vatStatus || 'exclusive',
+          attachment: t.attachment_url ? (
+            <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
+              <Paperclip className="h-4 w-4 mr-1" /> View
+            </a>
+          ) : 'None',
+          attachment_url: t.attachment_url,
+        };
+      });
       setTransactions(formattedData);
     }
     setLoading(false);
@@ -109,9 +109,15 @@ const Transactions = () => {
         document: newTransaction.document || "",
         type: newTransaction.type || "Invoice",
         date: newTransaction.date || new Date().toISOString().split('T')[0],
-        amount: newTransaction.amount || "",
         customer: newTransaction.customer || "",
         items_description: newTransaction.items_description || "",
+      });
+      setVatDetails({
+        subtotal: 0,
+        vatRate: 0,
+        vatAmount: 0,
+        totalAmount: parseFloat(newTransaction.amount) || 0,
+        vatStatus: 'inclusive',
       });
       setRawContent(newTransaction.content || '');
       setEditingTransaction(null);
@@ -139,15 +145,22 @@ const Transactions = () => {
 
   const columns = [
     { key: "document", label: "Reference No" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
-    { key: "amount", label: "Amount" }, { key: "customer", label: "Customer" }, { key: "items_description", label: "Items Description" },
-    { key: "attachment", label: "Attachment" },
+    { key: "customer", label: "Customer" }, { key: "subtotal", label: "Subtotal" }, { key: "vatAmount", label: "VAT Amount" },
+    { key: "totalAmount", label: "Total Amount" }, { key: "attachment", label: "Attachment" },
   ];
 
   const handleEdit = (transaction: any) => {
     setEditingTransaction(transaction);
     setFormData({
       document: transaction.document, type: transaction.type, date: transaction.date,
-      amount: transaction.amount, customer: transaction.customer, items_description: transaction.items_description || "",
+      customer: transaction.customer, items_description: transaction.items_description || "",
+    });
+    setVatDetails({
+      subtotal: parseFloat(transaction.subtotal) || 0,
+      vatRate: parseFloat(transaction.vatRate) || 0,
+      vatAmount: parseFloat(transaction.vatAmount) || 0,
+      totalAmount: parseFloat(transaction.totalAmount) || 0,
+      vatStatus: transaction.vatStatus || 'exclusive',
     });
     setRawContent(transaction.content || '');
     setAttachmentFile(null);
@@ -166,28 +179,16 @@ const Transactions = () => {
     setIsSaving(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        throw new Error("You must be logged in to save transactions.");
-      }
+      if (!user) throw new Error("You must be logged in to save transactions.");
 
       let attachmentUrl = editingTransaction?.attachment_url || null;
       if (attachmentFile) {
-        try {
-          const fileData = await toBase64(attachmentFile);
-          const { data: driveData, error: driveError } = await supabase.functions.invoke('upload-to-drive', {
-              body: {
-                  fileName: attachmentFile.name,
-                  fileType: attachmentFile.type,
-                  fileData: fileData,
-              }
-          });
-
-          if (driveError) throw driveError;
-          attachmentUrl = driveData.webViewLink;
-        } catch (error: any) {
-          const detailedError = error.context?.body?.error || error.message;
-          throw new Error(`Failed to upload to Google Drive: ${detailedError}`);
-        }
+        const fileData = await toBase64(attachmentFile);
+        const { data: driveData, error: driveError } = await supabase.functions.invoke('upload-to-drive', {
+            body: { fileName: attachmentFile.name, fileType: attachmentFile.type, fileData: fileData }
+        });
+        if (driveError) throw new Error(`Failed to upload to Google Drive: ${driveError.message}`);
+        attachmentUrl = driveData.webViewLink;
       }
 
       const transactionData = {
@@ -196,9 +197,9 @@ const Transactions = () => {
         content: rawContent,
         extracted_details: {
           document: formData.document,
-          amount: formData.amount,
           customer: formData.customer,
-          date: formData.date
+          date: formData.date,
+          ...vatDetails,
         },
         items_description: formData.items_description,
         attachment_url: attachmentUrl,
@@ -210,34 +211,21 @@ const Transactions = () => {
 
       if (dbError) throw dbError;
 
-      toast({ title: `Transaction ${editingTransaction ? 'updated' : 'added'}`, description: `The transaction has been successfully ${editingTransaction ? 'updated' : 'added'}.` });
+      toast({ title: `Transaction ${editingTransaction ? 'updated' : 'added'}`, description: `Successfully ${editingTransaction ? 'updated' : 'added'}.` });
       setIsDialogOpen(false);
-      setEditingTransaction(null);
       
       if (savedData) {
         const syncToast = showLoading("Syncing to Google Drive CSV...");
+        const details = savedData.extracted_details;
         const transactionForCsv = {
-          id: savedData.id,
-          document: savedData.extracted_details.document,
-          type: savedData.message_type,
-          date: savedData.extracted_details.date,
-          amount: savedData.extracted_details.amount,
-          customer: savedData.extracted_details.customer,
-          items_description: savedData.items_description,
+          id: savedData.id, document: details.document, type: savedData.message_type, date: details.date,
+          amount: details.totalAmount, customer: details.customer, items_description: savedData.items_description,
           attachment_url: savedData.attachment_url,
         };
-
-        const { error: syncError } = await supabase.functions.invoke('sync-transaction-to-drive', {
-          body: { transaction: transactionForCsv }
-        });
-
+        const { error: syncError } = await supabase.functions.invoke('sync-transaction-to-drive', { body: { transaction: transactionForCsv } });
         dismissToast(syncToast);
-        if (syncError) {
-          const detailedError = syncError.context?.body?.error || syncError.message;
-          showError(`Failed to sync to CSV: ${detailedError}`);
-        } else {
-          showSuccess("Successfully synced to Google Drive CSV.");
-        }
+        if (syncError) showError(`Failed to sync to CSV: ${syncError.message}`);
+        else showSuccess("Successfully synced to Google Drive CSV.");
       }
       
       fetchTransactions();
@@ -290,35 +278,31 @@ const Transactions = () => {
                   <DialogTrigger asChild>
                     <Button onClick={() => {
                       setEditingTransaction(null);
-                      setFormData({ document: "", type: "Invoice", date: "", amount: "", customer: "", items_description: "" });
+                      setFormData({ document: "", type: "Invoice", date: "", customer: "", items_description: "" });
+                      setVatDetails({ subtotal: 0, vatRate: 0, vatAmount: 0, totalAmount: 0, vatStatus: 'exclusive' });
                       setRawContent(''); setAttachmentFile(null);
                     }}><Plus className="h-4 w-4 mr-2" />Add Transaction</Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Reference No</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem><SelectItem value="Utility">Utility</SelectItem></SelectContent></Select></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
-                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
+                      
+                      <VatCalculator value={vatDetails} onChange={setVatDetails} />
+
                       <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="attachment" className="text-right">Attachment</Label>
                         <div className="col-span-3">
                           {attachmentFile ? (
                             <div className="flex items-center justify-between p-2 bg-gray-100 rounded-md">
-                              <div className="flex items-center gap-2 overflow-hidden">
-                                <Paperclip className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                                <span className="text-sm font-medium text-gray-800 truncate">{attachmentFile.name}</span>
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachmentFile(null)}>
-                                <X className="h-4 w-4" />
-                              </Button>
+                              <div className="flex items-center gap-2 overflow-hidden"><Paperclip className="h-4 w-4 text-gray-500 flex-shrink-0" /><span className="text-sm font-medium text-gray-800 truncate">{attachmentFile.name}</span></div>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachmentFile(null)}><X className="h-4 w-4" /></Button>
                             </div>
-                          ) : (
-                            <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} />
-                          )}
+                          ) : ( <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} /> )}
                         </div>
                       </div>
                     </div>
@@ -349,7 +333,7 @@ const Transactions = () => {
           </div>
         </DashboardLayout>
       </div>
-      <PrintableTransactions ref={printRef} transactions={filteredTransactions} columns={columns} />
+      <PrintableTransactions ref={printRef} transactions={filteredTransactions} columns={columns.filter(c => c.key !== 'attachment')} />
     </>
   );
 };

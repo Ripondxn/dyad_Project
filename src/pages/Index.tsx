@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Upload, List, DollarSign, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import VatSummary from "@/components/VatSummary";
 
 interface SummaryData {
   totalTransactions: number;
@@ -33,7 +34,7 @@ const Index = () => {
         const totalTransactions = data.length;
         
         const totalValue = data.reduce((sum, transaction) => {
-          const amount = parseFloat(transaction.extracted_details?.amount);
+          const amount = parseFloat(transaction.extracted_details?.totalAmount || transaction.extracted_details?.amount);
           return sum + (isNaN(amount) ? 0 : amount);
         }, 0);
 
@@ -113,6 +114,8 @@ const Index = () => {
             </CardContent>
           </Card>
         </div>
+
+        <VatSummary />
 
         {/* Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">
