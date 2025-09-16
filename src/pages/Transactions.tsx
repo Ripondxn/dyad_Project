@@ -114,7 +114,11 @@ const Transactions = () => {
       });
       setRawContent(newTransaction.content || '');
       setEditingTransaction(null);
-      setAttachmentFile(null);
+      if (newTransaction.attachmentFile) {
+        setAttachmentFile(newTransaction.attachmentFile);
+      } else {
+        setAttachmentFile(null);
+      }
       setIsDialogOpen(true);
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -299,7 +303,21 @@ const Transactions = () => {
                       <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
                       <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="attachment" className="text-right">Attachment</Label>
-                        <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" />
+                        <div className="col-span-3">
+                          {attachmentFile ? (
+                            <div className="flex items-center justify-between p-2 bg-gray-100 rounded-md">
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <Paperclip className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                                <span className="text-sm font-medium text-gray-800 truncate">{attachmentFile.name}</span>
+                              </div>
+                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAttachmentFile(null)}>
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} />
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex justify-end gap-2">

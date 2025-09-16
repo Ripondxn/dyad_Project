@@ -29,6 +29,7 @@ const Upload = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractionResult, setExtractionResult] = useState<string | null>(null);
   const [parsedTransactionData, setParsedTransactionData] = useState<any | null>(null);
+  const [processedFile, setProcessedFile] = useState<File | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -58,8 +59,10 @@ const Upload = () => {
 
       if (text.trim()) {
         functionArgs.text = text;
+        setProcessedFile(null);
       } else if (files.length > 0) {
         const file = files[0];
+        setProcessedFile(file);
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("You must be logged in to upload files.");
         
@@ -142,6 +145,7 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
     const newTransactionData = {
       ...parsedTransactionData,
       content: extractionResult,
+      attachmentFile: processedFile,
     };
     
     navigate("/transactions", { state: { newTransaction: newTransactionData } });
@@ -152,6 +156,7 @@ Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
     setParsedTransactionData(null);
     setFiles([]);
     setText("");
+    setProcessedFile(null);
   };
 
   const handleStartRecording = async () => {
