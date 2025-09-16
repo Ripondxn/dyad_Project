@@ -54,7 +54,7 @@ export function Sidebar({ isHidden = false }: SidebarProps) {
       <div className="flex h-14 items-center border-b px-6">
         <Link to="/" className="flex items-center gap-2 font-semibold">
           <Settings className="h-6 w-6" />
-          <span>Data Extractor</span>
+          <span>Transaction Guru</span>
         </Link>
       </div>
       <nav className="flex-1 overflow-y-auto py-4">
