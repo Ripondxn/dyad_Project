@@ -83,7 +83,7 @@ const Transactions = () => {
         id: t.id,
         document: t.extracted_details?.document || '',
         type: t.message_type || 'N/A',
-        date: t.timestamp ? new Date(t.timestamp).toISOString().split('T')[0] : '',
+        date: t.extracted_details?.date || '',
         amount: t.extracted_details?.amount || '',
         customer: t.extracted_details?.customer || '',
         items_description: t.items_description || '',
@@ -185,9 +185,17 @@ const Transactions = () => {
       }
 
       const transactionData = {
-        user_id: user.id, message_type: formData.type, timestamp: formData.date, content: rawContent,
-        extracted_details: { document: formData.document, amount: formData.amount, customer: formData.customer, date: formData.date },
-        items_description: formData.items_description, attachment_url: attachmentUrl,
+        user_id: user.id,
+        message_type: formData.type,
+        content: rawContent,
+        extracted_details: {
+          document: formData.document,
+          amount: formData.amount,
+          customer: formData.customer,
+          date: formData.date
+        },
+        items_description: formData.items_description,
+        attachment_url: attachmentUrl,
       };
 
       const { data: savedData, error: dbError } = editingTransaction
@@ -206,7 +214,7 @@ const Transactions = () => {
           id: savedData.id,
           document: savedData.extracted_details.document,
           type: savedData.message_type,
-          date: savedData.timestamp.split('T')[0],
+          date: savedData.extracted_details.date,
           amount: savedData.extracted_details.amount,
           customer: savedData.extracted_details.customer,
           items_description: savedData.items_description,
