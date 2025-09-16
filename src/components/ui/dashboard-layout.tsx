@@ -16,10 +16,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const isMobile = useIsMobile();
-  const [isCollapsed, setIsCollapsed] = React.useState(false);
+  const [isSidebarHidden, setIsSidebarHidden] = React.useState(false);
 
-  const toggleCollapse = () => {
-    setIsCollapsed(prev => !prev);
+  const toggleSidebar = () => {
+    setIsSidebarHidden(prev => !prev);
   };
 
   if (isMobile) {
@@ -46,12 +46,16 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen w-full">
-      <Sidebar isCollapsed={isCollapsed} toggleCollapse={toggleCollapse} />
+      <Sidebar isHidden={isSidebarHidden} />
       <main className={cn(
         "transition-[margin-left] duration-300 ease-in-out",
-        isCollapsed ? "ml-20" : "ml-64"
+        isSidebarHidden ? "ml-0" : "ml-64"
       )}>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-end border-b bg-background px-4">
+        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle Sidebar</span>
+          </Button>
           <UserNav />
         </header>
         <div className="p-4 sm:p-6">{children}</div>
