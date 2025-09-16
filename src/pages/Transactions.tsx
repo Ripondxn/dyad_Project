@@ -19,6 +19,7 @@ import PrintableTransactions from '@/components/PrintableTransactions';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { useUser } from "@/hooks/use-user";
 
 interface Transaction {
   id: string;
@@ -53,6 +54,7 @@ const Transactions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
+  const { isAdmin } = useUser();
 
   const [filters, setFilters] = useState<{
     customer: string;
@@ -167,6 +169,11 @@ const Transactions = () => {
 
     let attachmentUrl = editingTransaction?.attachment_url || null;
     if (attachmentFile) {
+      if (!isAdmin) {
+        showError("You do not have permission to save attachments. Please contact an administrator.");
+        setIsSaving(false);
+        return;
+      }
       try {
         const fileData = await toBase64(attachmentFile);
         const { data: driveData, error: driveError } = await supabase.functions.invoke('upload-to-drive', {
@@ -289,7 +296,12 @@ const Transactions = () => {
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-start gap-4"><Label htmlFor="items_description" className="text-right pt-2">Items Desc</Label><Textarea id="items_description" name="items_description" value={formData.items_description} onChange={handleInputChange} className="col-span-3 min-h-[80px]" /></div>
-                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="attachment" className="text-right">Attachment</Label><Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" /></div>
+                      {isAdmin && (
+                        <div className="grid grid-cols-4 items-center gap-4">
+                          <Label htmlFor="attachment" className="text-right">Attachment</Label>
+                          <Input id="attachment" name="attachment" type="file" onChange={handleFileChange} className="col-span-3" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex justify-end gap-2">
                       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
