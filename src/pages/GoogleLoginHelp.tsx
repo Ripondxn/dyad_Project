@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Copy, AlertTriangle } from 'lucide-react';
+import { Copy, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const GoogleLoginHelp = () => {
@@ -31,7 +31,7 @@ const GoogleLoginHelp = () => {
               <div>
                 <CardTitle className="text-lg">Most Common Fixes</CardTitle>
                 <CardDescription className="text-yellow-800">
-                  Start here. The issue is likely one of these two settings.
+                  Start here. The issue is likely one of these settings.
                 </CardDescription>
               </div>
             </CardHeader>
@@ -51,8 +51,28 @@ const GoogleLoginHelp = () => {
             </CardContent>
           </Card>
 
+          <Card>
+            <CardHeader>
+                <CardTitle className="text-lg">Step 1: Enable Required APIs</CardTitle>
+                <CardDescription>
+                    Supabase requires certain Google APIs to be enabled to function correctly.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-muted-foreground mb-2">
+                    Click the link below and ensure the "Identity Platform" API is enabled for your project. If it's not, click the "Enable" button on the Google page.
+                </p>
+                <Button asChild variant="outline">
+                    <a href="https://console.cloud.google.com/apis/library/identitytoolkit.googleapis.com" target="_blank" rel="noopener noreferrer">
+                        Enable Identity Platform API
+                    </a>
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">This is the most common cause of the `access_denied` error when other settings are correct.</p>
+            </CardContent>
+          </Card>
+
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 1: Verify Your Supabase Callback URL</h3>
+            <h3 className="font-semibold text-lg mb-2">Step 2: Verify Your Supabase Callback URL</h3>
             <p className="text-sm text-muted-foreground mb-2">
               This URL must be present in your Google Cloud project's "Authorized redirect URIs".
             </p>
@@ -72,9 +92,9 @@ const GoogleLoginHelp = () => {
           </div>
 
           <div>
-            <h3 className="font-semibold text-lg mb-2">Step 2: Verify Your Supabase Configuration</h3>
+            <h3 className="font-semibold text-lg mb-2">Step 3: Verify Your Supabase Configuration</h3>
             <p className="text-sm text-muted-foreground mb-2">
-              The Client ID and Secret must be copied exactly from Google Cloud into your Supabase dashboard. Even a small mistake will cause an error.
+              The Client ID and Secret must be copied exactly from Google Cloud into your Supabase dashboard.
             </p>
             <ol className="list-decimal list-inside space-y-2 text-sm pl-2">
               <li>In the <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">Credentials page</a>, find your OAuth Client ID. Make sure its "Type" is <strong className="text-green-600">Web application</strong>.</li>
