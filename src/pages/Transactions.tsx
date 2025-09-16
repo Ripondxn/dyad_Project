@@ -57,9 +57,10 @@ const Transactions = () => {
   const [filters, setFilters] = useState<{
     customer: string;
     type: string;
+    document: string;
     startDate: Date | undefined;
     endDate: Date | undefined;
-  }>({ customer: '', type: '', startDate: undefined, endDate: undefined });
+  }>({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined });
 
   const handlePrint = useReactToPrint({
     documentTitle: "Transactions Report",
@@ -128,10 +129,11 @@ const Transactions = () => {
     return transactions.filter(t => {
       const customerMatch = filters.customer ? t.customer.toLowerCase().includes(filters.customer.toLowerCase()) : true;
       const typeMatch = filters.type ? t.type === filters.type : true;
+      const documentMatch = filters.document ? t.document.toLowerCase().includes(filters.document.toLowerCase()) : true;
       const transactionDate = new Date(t.date);
       const startDateMatch = filters.startDate ? transactionDate >= filters.startDate : true;
       const endDateMatch = filters.endDate ? transactionDate <= filters.endDate : true;
-      return customerMatch && typeMatch && startDateMatch && endDateMatch;
+      return customerMatch && typeMatch && documentMatch && startDateMatch && endDateMatch;
     });
   }, [transactions, filters]);
 
@@ -264,7 +266,7 @@ const Transactions = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ customer: '', type: '', startDate: undefined, endDate: undefined });
+    setFilters({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined });
   };
 
   if (loading) {
@@ -296,7 +298,7 @@ const Transactions = () => {
                     <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Document #</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
-                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem></SelectContent></Select></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="customer" className="text-right">Customer</Label><Input id="customer" name="customer" value={formData.customer} onChange={handleInputChange} className="col-span-3" /></div>
@@ -332,12 +334,13 @@ const Transactions = () => {
             <Card>
               <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="space-y-2"><Label htmlFor="documentFilter">Document #</Label><Input id="documentFilter" placeholder="Filter by document..." value={filters.document} onChange={(e) => handleFilterChange('document', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
-                  <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="Filter by type..." /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem></SelectContent></Select></div>
                   <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
                   <div className="space-y-2"><Label>End Date</Label><DatePicker date={filters.endDate} setDate={(date) => handleFilterChange('endDate', date)} placeholder="Select end date" /></div>
-                  <Button onClick={clearFilters} variant="ghost"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
+                  <Button onClick={clearFilters} variant="ghost" className="md:col-span-1"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
                 </div>
               </CardContent>
             </Card>
