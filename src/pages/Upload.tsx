@@ -22,7 +22,6 @@ import ExtractionResult from "@/components/ExtractionResult";
 import { supabase } from "@/integrations/supabase/client";
 import { showError, showSuccess, showLoading, dismissToast } from "@/utils/toast";
 import CameraCapture from "@/components/CameraCapture";
-import { useCurrency } from "@/contexts/CurrencyContext";
 
 const Upload = () => {
   const [files, setFiles] = useState<File[]>([]);
@@ -36,7 +35,6 @@ const Upload = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const navigate = useNavigate();
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const { currencySymbol } = useCurrency();
 
   const handleFilesAccepted = (newFiles: File[]) => {
     setFiles(prev => [...prev, ...newFiles]);
@@ -121,7 +119,7 @@ Document #: ${extractedData.document || 'N/A'}
 Type: ${extractedData.type || 'N/A'}
 Merchant: ${extractedData.customer || 'N/A'}
 Date: ${extractedData.date || 'N/A'}
-Total Amount: ${extractedData.amount ? `${currencySymbol}${extractedData.amount}` : 'N/A'}
+Total Amount: ${extractedData.amount ? `$${extractedData.amount}` : 'N/A'}
       `.trim();
 
       setExtractionResult(formattedResult);

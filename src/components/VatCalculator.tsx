@@ -4,7 +4,6 @@ import React, { useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCurrency } from '@/contexts/CurrencyContext';
 
 export interface VatDetails {
   subtotal: number;
@@ -20,7 +19,6 @@ interface VatCalculatorProps {
 }
 
 const VatCalculator: React.FC<VatCalculatorProps> = ({ value, onChange }) => {
-  const { currencySymbol } = useCurrency();
   
   useEffect(() => {
     let { subtotal, vatRate, totalAmount, vatStatus } = value;
@@ -111,15 +109,15 @@ const VatCalculator: React.FC<VatCalculatorProps> = ({ value, onChange }) => {
 
       <div className="grid grid-cols-4 items-center gap-4 mt-6 pt-4 border-t">
         <Label className="text-right font-semibold">Subtotal</Label>
-        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">{currencySymbol}{value.subtotal.toFixed(2)}</p>
+        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">${value.subtotal.toFixed(2)}</p>
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label className="text-right font-semibold">VAT Amount</Label>
-        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">{currencySymbol}{value.vatAmount.toFixed(2)}</p>
+        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">${value.vatAmount.toFixed(2)}</p>
       </div>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label className="text-right font-semibold">Total Amount</Label>
-        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">{currencySymbol}{value.totalAmount.toFixed(2)}</p>
+        <p className="col-span-3 font-mono text-sm p-2 bg-white rounded-md">${value.totalAmount.toFixed(2)}</p>
       </div>
     </div>
   );

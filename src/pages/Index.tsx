@@ -7,7 +7,6 @@ import { Link } from "react-router-dom";
 import { Upload, List, DollarSign, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import VatSummary from "@/components/VatSummary";
-import { useCurrency } from "@/contexts/CurrencyContext";
 
 interface SummaryData {
   totalTransactions: number;
@@ -19,7 +18,6 @@ const Index = () => {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const { currencySymbol } = useCurrency();
 
   useEffect(() => {
     const fetchSummaryData = async () => {
@@ -100,7 +98,7 @@ const Index = () => {
               ) : (
                 <>
                   <div className="text-2xl font-bold">
-                    {currencySymbol}{summaryData?.totalValue.toFixed(2) ?? '0.00'}
+                    ${summaryData?.totalValue.toFixed(2) ?? '0.00'}
                   </div>
                   <p className="text-xs text-muted-foreground">Sum of all transaction amounts</p>
                 </>

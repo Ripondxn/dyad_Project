@@ -17,52 +17,49 @@ import HealthCheck from "./pages/HealthCheck";
 import UpdatePassword from "./pages/UpdatePassword";
 import EnvironmentGate from "./components/EnvironmentGate";
 import GoogleLoginHelp from "./pages/GoogleLoginHelp";
-import { CurrencyProvider } from "./contexts/CurrencyContext";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <EnvironmentGate>
     <QueryClientProvider client={queryClient}>
-      <CurrencyProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/health" element={<HealthCheck />} />
-              <Route path="/update-password" element={<UpdatePassword />} />
-              <Route path="/google-login-help" element={<GoogleLoginHelp />} />
-              
-              <Route 
-                path="/" 
-                element={<ProtectedRoute><Index /></ProtectedRoute>} 
-              />
-              <Route 
-                path="/transactions" 
-                element={<ProtectedRoute><Transactions /></ProtectedRoute>} 
-              />
-              <Route 
-                path="/upload" 
-                element={<ProtectedRoute><Upload /></ProtectedRoute>} 
-              />
-              <Route 
-                path="/profile" 
-                element={<ProtectedRoute><Profile /></ProtectedRoute>} 
-              />
-              <Route 
-                path="/admin" 
-                element={<AdminRoute><Admin /></AdminRoute>} 
-              />
-              <Route path="/google-callback" element={<GoogleCallback />} />
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/health" element={<HealthCheck />} />
+            <Route path="/update-password" element={<UpdatePassword />} />
+            <Route path="/google-login-help" element={<GoogleLoginHelp />} />
+            
+            <Route 
+              path="/" 
+              element={<ProtectedRoute><Index /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/transactions" 
+              element={<ProtectedRoute><Transactions /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/upload" 
+              element={<ProtectedRoute><Upload /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/profile" 
+              element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+            />
+            <Route 
+              path="/admin" 
+              element={<AdminRoute><Admin /></AdminRoute>} 
+            />
+            <Route path="/google-callback" element={<GoogleCallback />} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </CurrencyProvider>
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   </EnvironmentGate>
 );
