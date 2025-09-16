@@ -15,16 +15,16 @@ interface CameraCaptureProps {
 const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange, onCapture }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
 
   const startCamera = useCallback(async () => {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' }, // Prefer back camera
+        video: { facingMode: 'environment' },
         audio: false,
       });
-      setStream(mediaStream);
+      streamRef.current = mediaStream;
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
       }
@@ -36,18 +36,17 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange, onCap
   }, [onOpenChange]);
 
   const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
     }
-  }, [stream]);
+  }, []);
 
   useEffect(() => {
     if (open) {
       startCamera();
     } else {
       stopCamera();
-      setCapturedImage(null); // Reset on close
     }
     return () => {
       stopCamera();
@@ -55,7 +54,7 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange, onCap
   }, [open, startCamera, stopCamera]);
 
   const handleCaptureClick = () => {
-    if (videoRef.current && canvasRef.current) {
+    if (videoRef.current && canvasRef.current && streamRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       canvas.width = video.videoWidth;
@@ -87,8 +86,15 @@ const CameraCapture: React.FC<CameraCaptureProps> = ({ open, onOpenChange, onCap
     }
   };
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setCapturedImage(null);
+    }
+    onOpenChange(isOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl w-full p-0">
         <DialogHeader className="p-4 pb-0">
           <DialogTitle>Capture Document</DialogTitle>
