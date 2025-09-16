@@ -16,6 +16,7 @@ import GoogleCallback from "./pages/GoogleCallback";
 import HealthCheck from "./pages/HealthCheck";
 import UpdatePassword from "./pages/UpdatePassword";
 import EnvironmentGate from "./components/EnvironmentGate";
+import GoogleLoginHelp from "./pages/GoogleLoginHelp";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/health" element={<HealthCheck />} />
             <Route path="/update-password" element={<UpdatePassword />} />
+            <Route path="/google-login-help" element={<GoogleLoginHelp />} />
             
             <Route 
               path="/" 

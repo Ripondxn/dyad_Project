@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +54,11 @@ const Login = () => {
             theme="light"
             redirectTo={`${window.location.origin}/`}
           />
+          <div className="text-center mt-4 text-sm">
+            <Link to="/google-login-help" className="text-blue-600 hover:underline">
+              Having trouble with Google login?
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>
