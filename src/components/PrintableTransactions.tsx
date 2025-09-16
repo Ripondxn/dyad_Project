@@ -20,9 +20,6 @@ const PrintableTransactions = React.forwardRef<HTMLDivElement, PrintableTransact
                   {col.label}
                 </th>
               ))}
-              {transactions.some(t => t.attachment_url) && (
-                <th className="p-2 text-left font-semibold text-gray-700">Attachment URL</th>
-              )}
             </tr>
           </thead>
           <tbody>
@@ -33,13 +30,6 @@ const PrintableTransactions = React.forwardRef<HTMLDivElement, PrintableTransact
                     {transaction[col.key]}
                   </td>
                 ))}
-                {transaction.attachment_url ? (
-                  <td className="p-2 text-blue-600 underline">
-                    {transaction.attachment_url}
-                  </td>
-                ) : transactions.some(t => t.attachment_url) && (
-                  <td className="p-2 text-gray-500">None</td>
-                )}
               </tr>
             ))}
           </tbody>
