@@ -158,47 +158,44 @@ const Transactions = () => {
 
   const handleSave = async () => {
     setIsSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      showError("You must be logged in to save transactions.");
-      setIsSaving(false);
-      return;
-    }
-
-    let attachmentUrl = editingTransaction?.attachment_url || null;
-    if (attachmentFile) {
-      try {
-        const fileData = await toBase64(attachmentFile);
-        const { data: driveData, error: driveError } = await supabase.functions.invoke('upload-to-drive', {
-            body: {
-                fileName: attachmentFile.name,
-                fileType: attachmentFile.type,
-                fileData: fileData,
-            }
-        });
-
-        if (driveError) throw driveError;
-        attachmentUrl = driveData.webViewLink;
-      } catch (error: any) {
-        showError(`Failed to upload to Google Drive: ${error.message}`);
-        setIsSaving(false);
-        return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("You must be logged in to save transactions.");
       }
-    }
 
-    const transactionData = {
-      user_id: user.id, message_type: formData.type, timestamp: formData.date, content: rawContent,
-      extracted_details: { document: formData.document, amount: formData.amount, customer: formData.customer, date: formData.date },
-      items_description: formData.items_description, attachment_url: attachmentUrl,
-    };
+      let attachmentUrl = editingTransaction?.attachment_url || null;
+      if (attachmentFile) {
+        try {
+          const fileData = await toBase64(attachmentFile);
+          const { data: driveData, error: driveError } = await supabase.functions.invoke('upload-to-drive', {
+              body: {
+                  fileName: attachmentFile.name,
+                  fileType: attachmentFile.type,
+                  fileData: fileData,
+              }
+          });
 
-    const { data: savedData, error } = editingTransaction
-      ? await supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id).select().single()
-      : await supabase.from('transactions').insert(transactionData).select().single();
+          if (driveError) throw driveError;
+          attachmentUrl = driveData.webViewLink;
+        } catch (error: any) {
+          const detailedError = error.context?.body?.error || error.message;
+          throw new Error(`Failed to upload to Google Drive: ${detailedError}`);
+        }
+      }
 
-    if (error) { 
-      showError(error.message); 
-    } else {
+      const transactionData = {
+        user_id: user.id, message_type: formData.type, timestamp: formData.date, content: rawContent,
+        extracted_details: { document: formData.document, amount: formData.amount, customer: formData.customer, date: formData.date },
+        items_description: formData.items_description, attachment_url: attachmentUrl,
+      };
+
+      const { data: savedData, error: dbError } = editingTransaction
+        ? await supabase.from('transactions').update(transactionData).eq('id', editingTransaction.id).select().single()
+        : await supabase.from('transactions').insert(transactionData).select().single();
+
+      if (dbError) throw dbError;
+
       toast({ title: `Transaction ${editingTransaction ? 'updated' : 'added'}`, description: `The transaction has been successfully ${editingTransaction ? 'updated' : 'added'}.` });
       setIsDialogOpen(false);
       setEditingTransaction(null);
@@ -230,8 +227,11 @@ const Transactions = () => {
       }
       
       fetchTransactions();
+    } catch (error: any) {
+      showError(error.message);
+    } finally {
+      setIsSaving(false);
     }
-    setIsSaving(false);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
