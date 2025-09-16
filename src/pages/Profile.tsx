@@ -9,10 +9,23 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Save } from 'lucide-react';
 import AvatarUpload from '@/components/AvatarUpload';
 import config from '@/config';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+
+const passwordSchema = z.object({
+  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -20,6 +33,15 @@ const Profile = () => {
   const [googleAuthUrl, setGoogleAuthUrl] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(true);
   const { toast } = useToast();
+
+  const {
+    register: registerPassword,
+    handleSubmit: handleSubmitPassword,
+    formState: { errors: errorsPassword },
+    reset: resetPasswordForm,
+  } = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordSchema),
+  });
 
   useEffect(() => {
     const fetchProfileAndGoogleStatus = async () => {
@@ -95,6 +117,21 @@ const Profile = () => {
     setSaving(false);
   };
 
+  const onUpdatePassword = async (data: PasswordFormValues) => {
+    setIsSavingPassword(true);
+    const { error } = await supabase.auth.updateUser({
+      password: data.password,
+    });
+
+    if (error) {
+      toast({ title: 'Error updating password', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Password updated successfully!' });
+      resetPasswordForm();
+    }
+    setIsSavingPassword(false);
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -134,6 +171,33 @@ const Profile = () => {
                 <Button type="submit" disabled={saving}>
                   {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Changes
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Change Password</CardTitle>
+            <CardDescription>Update your account password here. Please choose a strong password.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmitPassword(onUpdatePassword)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">New Password</Label>
+                <Input id="password" type="password" {...registerPassword('password')} />
+                {errorsPassword.password && <p className="text-red-500 text-sm">{errorsPassword.password.message}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input id="confirmPassword" type="password" {...registerPassword('confirmPassword')} />
+                {errorsPassword.confirmPassword && <p className="text-red-500 text-sm">{errorsPassword.confirmPassword.message}</p>}
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit" disabled={isSavingPassword}>
+                  {isSavingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Update Password
                 </Button>
               </div>
             </form>
