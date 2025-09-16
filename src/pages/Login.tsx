@@ -50,9 +50,8 @@ const Login = () => {
           <Auth
             supabaseClient={supabase}
             appearance={{ theme: ThemeSupa }}
-            providers={['google', 'github']}
+            providers={['google']}
             theme="light"
-            redirectTo={`${window.location.origin}/`}
           />
           <div className="text-center mt-4 text-sm">
             <Link to="/google-login-help" className="text-blue-600 hover:underline">
