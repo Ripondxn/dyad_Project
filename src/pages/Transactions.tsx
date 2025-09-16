@@ -138,7 +138,7 @@ const Transactions = () => {
   }, [transactions, filters]);
 
   const columns = [
-    { key: "document", label: "Document #" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
+    { key: "document", label: "Reference No" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
     { key: "amount", label: "Amount" }, { key: "customer", label: "Customer" }, { key: "items_description", label: "Items Description" },
     { key: "attachment", label: "Attachment" },
   ];
@@ -297,7 +297,7 @@ const Transactions = () => {
                   <DialogContent>
                     <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
                     <div className="grid gap-4 py-4">
-                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Document #</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
+                      <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Reference No</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem></SelectContent></Select></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="amount" className="text-right">Amount</Label><Input id="amount" name="amount" value={formData.amount} onChange={handleInputChange} className="col-span-3" /></div>
@@ -335,7 +335,7 @@ const Transactions = () => {
               <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                  <div className="space-y-2"><Label htmlFor="documentFilter">Document #</Label><Input id="documentFilter" placeholder="Filter by document..." value={filters.document} onChange={(e) => handleFilterChange('document', e.target.value)} /></div>
+                  <div className="space-y-2"><Label htmlFor="documentFilter">Reference No</Label><Input id="documentFilter" placeholder="Filter by reference..." value={filters.document} onChange={(e) => handleFilterChange('document', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem></SelectContent></Select></div>
                   <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
