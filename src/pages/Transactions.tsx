@@ -58,7 +58,8 @@ const Transactions = () => {
     startDate: Date | undefined;
     endDate: Date | undefined;
     userId: string;
-  }>({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '' });
+    vatStatus: string;
+  }>({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '', vatStatus: '' });
 
   const handlePrint = useReactToPrint({
     documentTitle: "Transactions Report",
@@ -146,7 +147,8 @@ const Transactions = () => {
       const startDateMatch = filters.startDate ? transactionDate >= filters.startDate : true;
       const endDateMatch = filters.endDate ? transactionDate <= filters.endDate : true;
       const userMatch = isAdmin && filters.userId ? t.user_id === filters.userId : true;
-      return customerMatch && typeMatch && documentMatch && startDateMatch && endDateMatch && userMatch;
+      const vatStatusMatch = filters.vatStatus ? t.vatStatus === filters.vatStatus : true;
+      return customerMatch && typeMatch && documentMatch && startDateMatch && endDateMatch && userMatch && vatStatusMatch;
     });
   }, [transactions, filters, isAdmin]);
 
@@ -292,7 +294,7 @@ const Transactions = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '' });
+    setFilters({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '', vatStatus: '' });
   };
 
   if (loading) {
@@ -360,6 +362,18 @@ const Transactions = () => {
                   <div className="space-y-2"><Label htmlFor="documentFilter">Reference No</Label><Input id="documentFilter" placeholder="Filter by reference..." value={filters.document} onChange={(e) => handleFilterChange('document', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem><SelectItem value="Utility">Utility</SelectItem></SelectContent></Select></div>
+                  <div className="space-y-2">
+                    <Label htmlFor="vatStatusFilter">VAT Status</Label>
+                    <Select value={filters.vatStatus} onValueChange={(value) => handleFilterChange('vatStatus', value === 'all' ? '' : value)}>
+                      <SelectTrigger><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="inclusive">Inclusive</SelectItem>
+                        <SelectItem value="exclusive">Exclusive</SelectItem>
+                        <SelectItem value="exempt">Exempt</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   {isAdmin && (
                     <div className="space-y-2">
                       <Label htmlFor="userFilter">User Name</Label>
