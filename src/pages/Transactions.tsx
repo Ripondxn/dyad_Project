@@ -325,7 +325,7 @@ const Transactions = () => {
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl">
                     <DialogHeader><DialogTitle>{editingTransaction ? "Edit Transaction" : "Add New Transaction"}</DialogTitle></DialogHeader>
-                    <div className="grid gap-4 py-4">
+                    <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-6">
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="document" className="text-right">Reference No</Label><Input id="document" name="document" value={formData.document} onChange={handleInputChange} className="col-span-3" /></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="type" className="text-right">Type</Label><Select name="type" value={formData.type} onValueChange={(value) => handleSelectChange('type', value)}><SelectTrigger className="col-span-3"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem><SelectItem value="Utility">Utility</SelectItem></SelectContent></Select></div>
                       <div className="grid grid-cols-4 items-center gap-4"><Label htmlFor="date" className="text-right">Date</Label><Input id="date" name="date" type="date" value={formData.date} onChange={handleInputChange} className="col-span-3" /></div>
@@ -346,7 +346,7 @@ const Transactions = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 pt-4 border-t">
                       <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
                       <Button onClick={handleSave} disabled={isSaving}>{isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} {editingTransaction ? "Update" : "Add"} Transaction</Button>
                     </div>

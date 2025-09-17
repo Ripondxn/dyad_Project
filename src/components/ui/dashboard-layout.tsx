@@ -1,65 +1,38 @@
-"use client";
+import React from 'react';
+import Sidebar from '@/components/ui/sidebar';
+import { UserNav } from '@/components/UserNav';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Menu } from 'lucide-react';
 
-import * as React from "react";
-import { Menu } from "lucide-react";
-
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { Sidebar } from "./sidebar";
-import { UserNav } from "../UserNav";
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const isMobile = useIsMobile();
-  const [isSidebarHidden, setIsSidebarHidden] = React.useState(false);
-
-  const toggleSidebar = () => {
-    setIsSidebarHidden(prev => !prev);
-  };
-
-  if (isMobile) {
-    return (
-      <div className="min-h-screen w-full">
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="hidden border-r bg-muted/40 md:block">
+        <Sidebar />
+      </div>
+      <div className="flex flex-col">
+        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="icon" variant="outline">
+              <Button variant="outline" size="icon" className="shrink-0 md:hidden">
                 <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
+                <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="p-0">
+            <SheetContent side="left" className="flex flex-col p-0">
               <Sidebar />
             </SheetContent>
           </Sheet>
+          <div className="w-full flex-1" />
           <UserNav />
         </header>
-        <main className="p-4 sm:p-6">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+          {children}
+        </main>
       </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen w-full">
-      <Sidebar isHidden={isSidebarHidden} />
-      <main className={cn(
-        "transition-[margin-left] duration-300 ease-in-out",
-        isSidebarHidden ? "ml-0" : "ml-64"
-      )}>
-        <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-4">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar}>
-            <Menu className="h-5 w-5" />
-            <span className="sr-only">Toggle Sidebar</span>
-          </Button>
-          <UserNav />
-        </header>
-        <div className="p-4 sm:p-6">{children}</div>
-      </main>
     </div>
   );
-}
+};
+
+export default DashboardLayout;
