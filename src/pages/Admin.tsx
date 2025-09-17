@@ -3,7 +3,7 @@ import DashboardLayout from '@/components/ui/dashboard-layout';
 import DataTable from '@/components/ui/data-table';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Plus, KeyRound, Save } from 'lucide-react';
+import { Loader2, Plus, KeyRound, Save, DollarSign } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -36,6 +36,12 @@ const googleKeysSchema = z.object({
 });
 type GoogleKeysFormValues = z.infer<typeof googleKeysSchema>;
 
+const currencySettingsSchema = z.object({
+  currencySymbol: z.string().min(1, 'Symbol is required').max(5, 'Symbol is too long'),
+  currencyCode: z.string().min(3, 'Code must be 3 characters').max(3, 'Code must be 3 characters').toUpperCase(),
+});
+type CurrencySettingsFormValues = z.infer<typeof currencySettingsSchema>;
+
 interface Profile {
   id: string; email: string; first_name: string | null; last_name: string | null; role: string; status: string;
 }
@@ -53,6 +59,7 @@ const Admin = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSavingApiKey, setIsSavingApiKey] = useState(false);
   const [isSavingGoogleKeys, setIsSavingGoogleKeys] = useState(false);
+  const [isSavingCurrency, setIsSavingCurrency] = useState(false);
   const { toast } = useToast();
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<NewUserFormValues>({
@@ -77,6 +84,15 @@ const Admin = () => {
     resolver: zodResolver(googleKeysSchema),
   });
 
+  const {
+    register: registerCurrency,
+    handleSubmit: handleSubmitCurrency,
+    formState: { errors: errorsCurrency },
+    setValue: setCurrencyValue,
+  } = useForm<CurrencySettingsFormValues>({
+    resolver: zodResolver(currencySettingsSchema),
+  });
+
   const fetchProfiles = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase.rpc('get_all_users_with_profiles');
@@ -88,7 +104,24 @@ const Admin = () => {
     setLoading(false);
   }, [toast]);
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  useEffect(() => { 
+    fetchProfiles();
+    const fetchCurrencySettings = async () => {
+        const { data, error } = await supabase
+            .from('app_settings')
+            .select('currency_symbol, currency_code')
+            .eq('id', 1)
+            .single();
+
+        if (data) {
+            setCurrencyValue('currencySymbol', data.currency_symbol);
+            setCurrencyValue('currencyCode', data.currency_code);
+        } else if (error) {
+            toast({ title: 'Error fetching currency settings', description: error.message, variant: 'destructive' });
+        }
+    };
+    fetchCurrencySettings();
+  }, [fetchProfiles, setCurrencyValue, toast]);
 
   const handleEdit = (profile: Profile) => {
     setEditingProfile(profile);
@@ -185,6 +218,24 @@ const Admin = () => {
     setIsSavingGoogleKeys(false);
   };
 
+  const handleUpdateCurrency = async (data: CurrencySettingsFormValues) => {
+    setIsSavingCurrency(true);
+    const { error } = await supabase
+        .from('app_settings')
+        .update({
+            currency_symbol: data.currencySymbol,
+            currency_code: data.currencyCode,
+        })
+        .eq('id', 1);
+
+    if (error) {
+        toast({ title: 'Error updating currency', description: error.message, variant: 'destructive' });
+    } else {
+        toast({ title: 'Currency settings updated!' });
+    }
+    setIsSavingCurrency(false);
+  };
+
   const columns = [
     { key: 'email', label: 'Email' }, { key: 'first_name', label: 'First Name' },
     { key: 'last_name', label: 'Last Name' }, { key: 'role', label: 'Role' }, { key: 'status', label: 'Status' },
@@ -265,6 +316,33 @@ const Admin = () => {
                   {errorsGoogleKeys.clientSecret && <p className="text-sm text-red-500">{errorsGoogleKeys.clientSecret.message}</p>}
                 </div>
                 <Button type="submit" disabled={isSavingGoogleKeys}>{isSavingGoogleKeys && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save Google Keys</Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" />Currency Settings</CardTitle>
+              <CardDescription>Set the default currency symbol and code for the application.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitCurrency(handleUpdateCurrency)} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="currencySymbol">Currency Symbol</Label>
+                    <Input id="currencySymbol" placeholder="$" {...registerCurrency('currencySymbol')} />
+                    {errorsCurrency.currencySymbol && <p className="text-sm text-red-500">{errorsCurrency.currencySymbol.message}</p>}
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="currencyCode">Currency Code (3-letter)</Label>
+                    <Input id="currencyCode" placeholder="USD" {...registerCurrency('currencyCode')} />
+                    {errorsCurrency.currencyCode && <p className="text-sm text-red-500">{errorsCurrency.currencyCode.message}</p>}
+                  </div>
+                </div>
+                <Button type="submit" disabled={isSavingCurrency}>
+                  {isSavingCurrency && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Currency Settings
+                </Button>
               </form>
             </CardContent>
           </Card>

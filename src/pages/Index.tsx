@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import { Upload, List, DollarSign, ArrowRight, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import VatSummary from "@/components/VatSummary";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 interface SummaryData {
   totalTransactions: number;
@@ -18,6 +19,7 @@ const Index = () => {
   const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { data: appSettings, isLoading: isLoadingSettings } = useAppSettings();
 
   useEffect(() => {
     const fetchSummaryData = async () => {
@@ -93,12 +95,13 @@ const Index = () => {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              {loading ? (
+              {loading || isLoadingSettings ? (
                 <Loader2 className="h-6 w-6 animate-spin" />
               ) : (
                 <>
                   <div className="text-2xl font-bold">
-                    ${summaryData?.totalValue.toFixed(2) ?? '0.00'}
+                    {appSettings?.currency_symbol ?? '$'}
+                    {summaryData?.totalValue.toFixed(2) ?? '0.00'}
                   </div>
                   <p className="text-xs text-muted-foreground">Sum of all transaction amounts</p>
                 </>

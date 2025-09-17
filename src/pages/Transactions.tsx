@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import VatCalculator, { VatDetails } from "@/components/VatCalculator";
+import { useAppSettings } from "@/hooks/use-app-settings";
 
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -46,6 +47,7 @@ const Transactions = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
+  const { data: appSettings } = useAppSettings();
 
   const [filters, setFilters] = useState<{
     customer: string;
@@ -73,7 +75,7 @@ const Transactions = () => {
     if (error) {
       showError(error.message);
     } else if (data) {
-      const formattedData = data.map(t => {
+      const rawData = data.map(t => {
         const details = t.extracted_details || {};
         return {
           id: t.id,
@@ -82,20 +84,15 @@ const Transactions = () => {
           date: details.date || '',
           customer: details.customer || '',
           items_description: t.items_description || '',
-          subtotal: parseFloat(details.subtotal || details.amount || 0).toFixed(2),
-          vatAmount: parseFloat(details.vatAmount || 0).toFixed(2),
-          totalAmount: parseFloat(details.totalAmount || details.amount || 0).toFixed(2),
+          subtotal: parseFloat(details.subtotal || details.amount || 0),
+          vatAmount: parseFloat(details.vatAmount || 0),
+          totalAmount: parseFloat(details.totalAmount || details.amount || 0),
           vatRate: details.vatRate || 0,
           vatStatus: details.vatStatus || 'exclusive',
-          attachment: t.attachment_url ? (
-            <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
-              <Paperclip className="h-4 w-4 mr-1" /> View
-            </a>
-          ) : 'None',
           attachment_url: t.attachment_url,
         };
       });
-      setTransactions(formattedData);
+      setTransactions(rawData);
     }
     setLoading(false);
   }, []);
@@ -143,6 +140,21 @@ const Transactions = () => {
     });
   }, [transactions, filters]);
 
+  const displayTransactions = useMemo(() => {
+    const symbol = appSettings?.currency_symbol ?? '$';
+    return filteredTransactions.map(t => ({
+      ...t,
+      subtotal: `${symbol}${t.subtotal.toFixed(2)}`,
+      vatAmount: `${symbol}${t.vatAmount.toFixed(2)}`,
+      totalAmount: `${symbol}${t.totalAmount.toFixed(2)}`,
+      attachment: t.attachment_url ? (
+        <a href={t.attachment_url} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-500 hover:underline">
+          <Paperclip className="h-4 w-4 mr-1" /> View
+        </a>
+      ) : 'None',
+    }));
+  }, [filteredTransactions, appSettings]);
+
   const columns = [
     { key: "document", label: "Reference No" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
     { key: "customer", label: "Customer" }, { key: "subtotal", label: "Subtotal" }, { key: "vatAmount", label: "VAT Amount" },
@@ -150,19 +162,22 @@ const Transactions = () => {
   ];
 
   const handleEdit = (transaction: any) => {
-    setEditingTransaction(transaction);
+    const originalTransaction = transactions.find(t => t.id === transaction.id);
+    if (!originalTransaction) return;
+
+    setEditingTransaction(originalTransaction);
     setFormData({
-      document: transaction.document, type: transaction.type, date: transaction.date,
-      customer: transaction.customer, items_description: transaction.items_description || "",
+      document: originalTransaction.document, type: originalTransaction.type, date: originalTransaction.date,
+      customer: originalTransaction.customer, items_description: originalTransaction.items_description || "",
     });
     setVatDetails({
-      subtotal: parseFloat(transaction.subtotal) || 0,
-      vatRate: parseFloat(transaction.vatRate) || 0,
-      vatAmount: parseFloat(transaction.vatAmount) || 0,
-      totalAmount: parseFloat(transaction.totalAmount) || 0,
-      vatStatus: transaction.vatStatus || 'exclusive',
+      subtotal: originalTransaction.subtotal,
+      vatRate: originalTransaction.vatRate,
+      vatAmount: originalTransaction.vatAmount,
+      totalAmount: originalTransaction.totalAmount,
+      vatStatus: originalTransaction.vatStatus,
     });
-    setRawContent(transaction.content || '');
+    setRawContent(originalTransaction.content || '');
     setAttachmentFile(null);
     setIsDialogOpen(true);
   };
@@ -329,11 +344,11 @@ const Transactions = () => {
               </CardContent>
             </Card>
 
-            <DataTable data={filteredTransactions} columns={columns} onEdit={handleEdit} onDelete={handleDelete} />
+            <DataTable data={displayTransactions} columns={columns} onEdit={handleEdit} onDelete={handleDelete} />
           </div>
         </DashboardLayout>
       </div>
-      <PrintableTransactions ref={printRef} transactions={filteredTransactions} columns={columns.filter(c => c.key !== 'attachment')} />
+      <PrintableTransactions ref={printRef} transactions={displayTransactions} columns={columns.filter(c => c.key !== 'attachment')} />
     </>
   );
 };

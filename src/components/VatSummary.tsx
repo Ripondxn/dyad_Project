@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
 import { subDays, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useAppSettings } from '@/hooks/use-app-settings';
 
 const VatSummary = () => {
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -16,6 +17,7 @@ const VatSummary = () => {
   });
   const [summary, setSummary] = useState<{ totalVat: number; netSales: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const { data: appSettings } = useAppSettings();
 
   useEffect(() => {
     const fetchVatData = async () => {
@@ -101,11 +103,11 @@ const VatSummary = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-center pt-4">
             <div>
               <p className="text-sm text-muted-foreground">Total VAT Collected</p>
-              <p className="text-2xl font-bold">${summary.totalVat.toFixed(2)}</p>
+              <p className="text-2xl font-bold">{appSettings?.currency_symbol ?? '$'}{summary.totalVat.toFixed(2)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Sales (Net)</p>
-              <p className="text-2xl font-bold">${summary.netSales.toFixed(2)}</p>
+              <p className="text-2xl font-bold">{appSettings?.currency_symbol ?? '$'}{summary.netSales.toFixed(2)}</p>
             </div>
           </div>
         ) : (
