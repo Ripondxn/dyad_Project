@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from '@/components/ui/sidebar';
 import { UserNav } from '@/components/UserNav';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <div className={cn(
+      "grid min-h-screen w-full transition-all duration-300",
+      isCollapsed 
+        ? "md:grid-cols-[68px_1fr]" 
+        : "md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]"
+    )}>
       <div className="hidden border-r bg-muted/40 md:block">
-        <Sidebar />
+        <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       </div>
       <div className="flex flex-col">
         <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
@@ -21,7 +29,8 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col p-0">
-              <Sidebar />
+              {/* The mobile sidebar is never collapsed */}
+              <Sidebar isCollapsed={false} setIsCollapsed={() => {}} />
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1" />
