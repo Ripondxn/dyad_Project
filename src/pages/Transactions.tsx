@@ -21,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker";
 import VatCalculator, { VatDetails } from "@/components/VatCalculator";
 import { useAppSettings } from "@/hooks/use-app-settings";
+import { useUser } from "@/hooks/use-user";
 
 const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -48,6 +49,7 @@ const Transactions = () => {
   const navigate = useNavigate();
   const printRef = useRef<HTMLDivElement>(null);
   const { data: appSettings } = useAppSettings();
+  const { isAdmin } = useUser();
 
   const [filters, setFilters] = useState<{
     customer: string;
@@ -55,7 +57,8 @@ const Transactions = () => {
     document: string;
     startDate: Date | undefined;
     endDate: Date | undefined;
-  }>({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined });
+    userId: string;
+  }>({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '' });
 
   const handlePrint = useReactToPrint({
     documentTitle: "Transactions Report",
@@ -70,15 +73,23 @@ const Transactions = () => {
       return;
     }
 
-    const { data, error } = await supabase.from('transactions').select('*').order('timestamp', { ascending: false });
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*, profiles(id, first_name, last_name)')
+      .order('timestamp', { ascending: false });
 
     if (error) {
       showError(error.message);
     } else if (data) {
       const rawData = data.map(t => {
         const details = t.extracted_details || {};
+        const profile = t.profiles as any;
+        const userName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown User';
+        
         return {
           id: t.id,
+          user_id: profile?.id,
+          userName: userName,
           document: details.document || '',
           type: t.message_type || 'N/A',
           date: details.date || '',
@@ -128,6 +139,17 @@ const Transactions = () => {
     }
   }, [location.state, navigate]);
 
+  const uniqueUsers = useMemo(() => {
+    if (!isAdmin) return [];
+    const usersMap = new Map();
+    transactions.forEach(t => {
+      if (t.user_id && !usersMap.has(t.user_id)) {
+        usersMap.set(t.user_id, { id: t.user_id, name: t.userName || 'Unknown User' });
+      }
+    });
+    return Array.from(usersMap.values());
+  }, [transactions, isAdmin]);
+
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       const customerMatch = filters.customer ? t.customer.toLowerCase().includes(filters.customer.toLowerCase()) : true;
@@ -136,9 +158,10 @@ const Transactions = () => {
       const transactionDate = new Date(t.date);
       const startDateMatch = filters.startDate ? transactionDate >= filters.startDate : true;
       const endDateMatch = filters.endDate ? transactionDate <= filters.endDate : true;
-      return customerMatch && typeMatch && documentMatch && startDateMatch && endDateMatch;
+      const userMatch = isAdmin && filters.userId ? t.user_id === filters.userId : true;
+      return customerMatch && typeMatch && documentMatch && startDateMatch && endDateMatch && userMatch;
     });
-  }, [transactions, filters]);
+  }, [transactions, filters, isAdmin]);
 
   const displayTransactions = useMemo(() => {
     const symbol = appSettings?.currency_symbol ?? '$';
@@ -155,11 +178,24 @@ const Transactions = () => {
     }));
   }, [filteredTransactions, appSettings]);
 
-  const columns = [
-    { key: "document", label: "Reference No" }, { key: "type", label: "Type" }, { key: "date", label: "Date" },
-    { key: "customer", label: "Customer" }, { key: "subtotal", label: "Subtotal" }, { key: "vatAmount", label: "VAT Amount" },
-    { key: "totalAmount", label: "Total Amount" }, { key: "attachment", label: "Attachment" },
-  ];
+  const columns = useMemo(() => {
+    const baseColumns = [
+      { key: "document", label: "Reference No" },
+      { key: "type", label: "Type" },
+      { key: "date", label: "Date" },
+      { key: "customer", label: "Customer" },
+      { key: "subtotal", label: "Subtotal" },
+      { key: "vatAmount", label: "VAT Amount" },
+      { key: "totalAmount", label: "Total Amount" },
+      { key: "attachment", label: "Attachment" },
+    ];
+
+    if (isAdmin) {
+      baseColumns.splice(1, 0, { key: "userName", label: "User Name" });
+    }
+
+    return baseColumns;
+  }, [isAdmin]);
 
   const handleEdit = (transaction: any) => {
     const originalTransaction = transactions.find(t => t.id === transaction.id);
@@ -269,7 +305,7 @@ const Transactions = () => {
   };
 
   const clearFilters = () => {
-    setFilters({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined });
+    setFilters({ customer: '', type: '', document: '', startDate: undefined, endDate: undefined, userId: '' });
   };
 
   if (loading) {
@@ -333,13 +369,26 @@ const Transactions = () => {
             <Card>
               <CardHeader><CardTitle>Advanced Filters</CardTitle></CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-end">
                   <div className="space-y-2"><Label htmlFor="documentFilter">Reference No</Label><Input id="documentFilter" placeholder="Filter by reference..." value={filters.document} onChange={(e) => handleFilterChange('document', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="customerFilter">Customer</Label><Input id="customerFilter" placeholder="Filter by customer..." value={filters.customer} onChange={(e) => handleFilterChange('customer', e.target.value)} /></div>
                   <div className="space-y-2"><Label htmlFor="typeFilter">Type</Label><Select value={filters.type} onValueChange={(value) => handleFilterChange('type', value)}><SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger><SelectContent><SelectItem value="Invoice">Invoice</SelectItem><SelectItem value="Receipt">Receipt</SelectItem><SelectItem value="Bill">Bill</SelectItem><SelectItem value="Quotation">Quotation</SelectItem><SelectItem value="Utility">Utility</SelectItem></SelectContent></Select></div>
+                  {isAdmin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="userFilter">User Name</Label>
+                      <Select value={filters.userId} onValueChange={(value) => handleFilterChange('userId', value)}>
+                        <SelectTrigger><SelectValue placeholder="All Users" /></SelectTrigger>
+                        <SelectContent>
+                          {uniqueUsers.map(user => (
+                            <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                   <div className="space-y-2"><Label>Start Date</Label><DatePicker date={filters.startDate} setDate={(date) => handleFilterChange('startDate', date)} placeholder="Select start date" /></div>
                   <div className="space-y-2"><Label>End Date</Label><DatePicker date={filters.endDate} setDate={(date) => handleFilterChange('endDate', date)} placeholder="Select end date" /></div>
-                  <Button onClick={clearFilters} variant="ghost" className="md:col-span-1"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
+                  <Button onClick={clearFilters} variant="ghost" className="w-full"><X className="h-4 w-4 mr-2" />Clear Filters</Button>
                 </div>
               </CardContent>
             </Card>
