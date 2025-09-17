@@ -69,10 +69,16 @@ const Upload = () => {
         
         const filePath = `${user.id}/${Date.now()}-${file.name}`;
         const { error: uploadError } = await supabase.storage.from('transaction_uploads').upload(filePath, file);
-        if (uploadError) throw new Error(`Upload failed: ${uploadError.message}`);
+        if (uploadError) {
+          console.error("Supabase Storage Upload Error:", uploadError);
+          throw new Error(`Failed to upload file to storage: ${uploadError.message}`);
+        }
         
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage.from('transaction_uploads').createSignedUrl(filePath, 60);
-        if (signedUrlError) throw new Error(`Failed to create secure link: ${signedUrlError.message}`);
+        if (signedUrlError) {
+          console.error("Supabase Storage Signed URL Error:", signedUrlError);
+          throw new Error(`Failed to create secure link for file: ${signedUrlError.message}`);
+        }
         
         functionArgs.filePath = filePath;
         functionArgs.signedUrl = signedUrlData.signedUrl;
