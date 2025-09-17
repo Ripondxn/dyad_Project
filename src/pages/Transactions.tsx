@@ -66,30 +66,17 @@ const Transactions = () => {
 
   const fetchTransactions = useCallback(async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      showError("You must be logged in to view transactions.");
-      setLoading(false);
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*, profiles(id, first_name, last_name)')
-      .order('timestamp', { ascending: false });
+    const { data, error } = await supabase.rpc('get_all_transactions');
 
     if (error) {
       showError(error.message);
     } else if (data) {
       const rawData = data.map(t => {
         const details = t.extracted_details || {};
-        const profile = t.profiles as any;
-        const userName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : 'Unknown User';
-        
         return {
           id: t.id,
-          user_id: profile?.id,
-          userName: userName,
+          user_id: t.user_id,
+          userName: t.user_name || 'Unknown User',
           document: details.document || '',
           type: t.message_type || 'N/A',
           date: details.date || '',
