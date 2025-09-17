@@ -6,7 +6,16 @@ import { DatePickerWithRange } from '@/components/ui/date-picker-with-range';
 import { DateRange } from 'react-day-picker';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { subDays, startOfQuarter, endOfQuarter, startOfYear, endOfYear } from 'date-fns';
+import { 
+  startOfQuarter, 
+  endOfQuarter, 
+  startOfYear, 
+  endOfYear, 
+  addQuarters, 
+  subQuarters, 
+  addYears, 
+  subYears 
+} from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppSettings } from '@/hooks/use-app-settings';
 
@@ -61,12 +70,23 @@ const VatSummary = () => {
         setDateRange({ from: startOfQuarter(now), to: endOfQuarter(now) });
         break;
       case 'last_quarter':
-        const lastQuarterStart = startOfQuarter(subDays(now, 90));
-        const lastQuarterEnd = endOfQuarter(subDays(now, 90));
-        setDateRange({ from: lastQuarterStart, to: lastQuarterEnd });
+        const lastQuarter = subQuarters(now, 1);
+        setDateRange({ from: startOfQuarter(lastQuarter), to: endOfQuarter(lastQuarter) });
+        break;
+      case 'next_quarter':
+        const nextQuarter = addQuarters(now, 1);
+        setDateRange({ from: startOfQuarter(nextQuarter), to: endOfQuarter(nextQuarter) });
         break;
       case 'this_year':
         setDateRange({ from: startOfYear(now), to: endOfYear(now) });
+        break;
+      case 'last_year':
+        const lastYear = subYears(now, 1);
+        setDateRange({ from: startOfYear(lastYear), to: endOfYear(lastYear) });
+        break;
+      case 'next_year':
+        const nextYear = addYears(now, 1);
+        setDateRange({ from: startOfYear(nextYear), to: endOfYear(nextYear) });
         break;
       default:
         break;
@@ -88,7 +108,10 @@ const VatSummary = () => {
             <SelectContent>
               <SelectItem value="this_quarter">This Quarter</SelectItem>
               <SelectItem value="last_quarter">Last Quarter</SelectItem>
+              <SelectItem value="next_quarter">Next Quarter</SelectItem>
               <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="last_year">Last Year</SelectItem>
+              <SelectItem value="next_year">Next Year</SelectItem>
             </SelectContent>
           </Select>
         </div>
