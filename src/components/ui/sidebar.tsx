@@ -3,7 +3,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Home, Upload, List, User, Shield, BarChart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Upload, List, User, Shield, BarChart, Menu } from 'lucide-react';
 import { useUser } from '@/hooks/use-user';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -29,17 +29,31 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, className }: SidebarProps) => {
     navItems.push({ href: '/admin', label: 'Admin Panel', icon: Shield });
   }
 
-  // The collapse button should not be rendered for the mobile sheet view
   const isMobileSheet = !setIsCollapsed || typeof setIsCollapsed !== 'function' || setIsCollapsed.toString() === '() => {}';
 
   return (
     <div className={cn("flex h-full flex-col", className)}>
       <div className={cn(
-        "flex items-center border-b px-4 py-6 h-14 lg:h-[60px]",
-        isCollapsed ? "justify-center px-2" : "gap-2"
+        "flex items-center border-b px-4 h-14 lg:h-[60px]",
+        isCollapsed ? "justify-center" : "justify-between"
       )}>
-        <BarChart className="h-7 w-7 text-primary" />
-        {!isCollapsed && <h1 className="text-xl font-bold">Transaction Guru</h1>}
+        {!isCollapsed && (
+          <div className="flex items-center gap-2">
+            <BarChart className="h-7 w-7 text-primary" />
+            <h1 className="text-xl font-bold">Transaction Guru</h1>
+          </div>
+        )}
+        {!isMobileSheet && (
+          <Button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            variant="ghost"
+            size="icon"
+            className="shrink-0"
+          >
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
+          </Button>
+        )}
       </div>
       <nav className={cn(
         "flex-1 space-y-2",
@@ -79,18 +93,6 @@ const Sidebar = ({ isCollapsed, setIsCollapsed, className }: SidebarProps) => {
           ))}
         </TooltipProvider>
       </nav>
-      {!isMobileSheet && (
-        <div className="mt-auto border-t p-2">
-          <Button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            variant="ghost"
-            className="w-full justify-center"
-          >
-            {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-            <span className="sr-only">{isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}</span>
-          </Button>
-        </div>
-      )}
     </div>
   );
 };
